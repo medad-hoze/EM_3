@@ -20,18 +20,18 @@ class Layer_Engine():
             columns.extend(['SHAPE@AREA'])
             columns.extend(['SHAPE@'])
 
-        self.layer       = layer
-        self.gdb         = os.path.dirname  (layer)
-        self.name        = os.path.basename (layer)
-        self.desc        = arcpy.Describe(layer)
-        self.shapetype   = ShapeType(self.desc)
-        self.oid         = str(self.desc.OIDFieldName)
-        self.len_columns = len(columns)
-        self.data        = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns)]
-        self.df          = pd.DataFrame(data = self.data, columns = columns)
+        self.layer           = layer
+        self.gdb             = os.path.dirname  (layer)
+        self.name            = os.path.basename (layer)
+        self.desc            = arcpy.Describe(layer)
+        self.shapetype       = ShapeType(self.desc)
+        self.oid             = str(self.desc.OIDFieldName)
+        self.len_columns     = len(columns)
+        self.data            = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns)]
+        self.df              = pd.DataFrame(data = self.data, columns = columns)
         self.df["geom_type"] = self.shapetype
-        self.len_rows    = self.df.shape[0]
-        self.columns     = columns
+        self.len_rows        = self.df.shape[0]
+        self.columns         = columns
 
         self.data_shape,    self.df_shape , self.Not_closed = None, None, None
         self.exists_curves, self.bad_area   = None, None

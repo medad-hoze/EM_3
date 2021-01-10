@@ -5,24 +5,10 @@ import json
 import arcpy,os
 
 from Engine_class import Layer_Engine
-
-def ShapeType(desc):
-    
-    if str(desc.shapeType) == 'Point':
-        Geom_type = 'Point'
-    elif str(desc.shapeType) == 'Polyline':
-        Geom_type = 'Polyline'
-    else:
-        Geom_type = 'Polygon'
-    return Geom_type
+from Basic_Tools  import *
 
 
-def Connect_rows(x,y):
-    return str(x) + '-' + str(y)
-
-
-
-csv_ = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\LUT 03112020.csv"
+xlsx = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
 path = r"C:\GIS_layers\Vector\bad_DWG\15_11_2019\Migrash_528_2.dwg"
 
 poly_path    = path + "\\" + "Polygon"
@@ -35,18 +21,19 @@ layer_poly  = Layer_Engine(poly_path)
 layer_line  = Layer_Engine(line_path)
 layer_point = Layer_Engine(point_path)
 
-poly_uni    = layer_poly.df["Layer"].unique()
+layers        = [layer_poly.df,layer_line.df,layer_point.df]
 
-layers        = [layer_poly,layer_line,layer_point]
-layers_Filter = []
+All_df  = pd.concat(layers, ignore_index=True).set_index('Layer')
 
-for layer in layers:
-    df_layer = layer.Get_Field_Count_to_df("Layer")
-    df_layer = df_layer[df_layer['Layer'] == layer_search]
-    layers_Filter.append(df_layer)
 
-All_df = pd.concat(layers_Filter, ignore_index=True)
-print (All_df["Layer_num"])
+df_xlsx = read_excel_sheets(xlsx).set_index('LAYER')
+
+result  = All_df.join(df_xlsx,how='inner')
+
+a = result
+
+a.to_csv(r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\excel.csv',encoding='utf-8')
+print (a)
 
 # .agg({'Layer', lambda x: list(x)}))
 

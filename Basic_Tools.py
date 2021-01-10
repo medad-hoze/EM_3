@@ -359,3 +359,19 @@ def get_crazy_long_test(DWG):
 				
 		return long_prob
 
+def read_excel_sheets(path2):
+    # combine sheets to dataframe
+    x1 = pd.ExcelFile(path2)
+    df = pd.DataFrame()
+    columns = None
+    for idx,name in enumerate(x1.sheet_names):
+        try:
+            sheet = x1.parse(name)
+            if idx == 0:
+                columns = sheet.columns
+            sheet.columns = columns
+        except:
+            print "coudent read sheet {}".format(name)
+        df = df.append(sheet,ignore_index = True)
+            
+    return df
