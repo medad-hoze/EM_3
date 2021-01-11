@@ -391,6 +391,17 @@ def join_and_query_dfs(layer_,df_xlsx):
     return dict_
 
 
+def Get_Attri_blocks_to_dict(df_attri,layer_point):
+
+    df_attri['Geom_Type'] = np.where(df_attri['GEOMETRY'] == 'BLOCK','POINT',df_attri['GEOMETRY'])
+    result               = layer_point.df.set_index('Layer').join(df_attri,how='inner')
+    result               = result[(result["Entity"]  ==  'Insert') & (result['BLOCK_NAME.1'] == result['RefName'])]
+
+    result  = result[["BLOCK_NAME","Geom_Type","FC","BLOCK_NAME.1","SHAPE@"]]
+    dict_   = result.T.to_dict('list')
+    return dict_
+
+
 def create_layers(gdb,dict_):
     arcpy.env.workspace = gdb
     layers              = [str(i) for i in arcpy.ListFeatureClasses()]
@@ -422,3 +433,13 @@ def Insert_dict_to_layers(dict_,gdb):
                     insert_raw.block_name = str(value[0])
                     insert_raw.layer      = str(key)
                     insert.insertRow  (insert_raw)
+
+
+def Connect_attri_layer(dict_attri,dict_poly):
+    intersect = []
+    for key,item in dict_attri.items():
+        if dict_poly.has_key(key):
+            if item[-1].distanceTo(dict_poly[key][-1]) == 0:
+                intersect.append(key)
+    print "Intersects:", intersect
+    return intersect
