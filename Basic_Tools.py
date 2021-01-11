@@ -4,7 +4,7 @@
 import arcpy
 import pandas as pd
 import uuid,json,datetime,sys,csv,os,math
-
+import numpy as np
 
 arcpy.env.overwriteOutPut = True
 
@@ -96,11 +96,11 @@ def Create_GDB(GDB_file,GDB_name):
 def ShapeType(desc):
     
     if str(desc.shapeType) == 'Point':
-        Geom_type = 'Point'
+        Geom_type = 'POINT'
     elif str(desc.shapeType) == 'Polyline':
-        Geom_type = 'Polyline'
+        Geom_type = 'POLYLINE'
     else:
-        Geom_type = 'Polygon'
+        Geom_type = 'POLYGON'
     return Geom_type
 
 
@@ -375,3 +375,17 @@ def read_excel_sheets(path2):
         df = df.append(sheet,ignore_index = True)
             
     return df
+
+
+def join_and_query_dfs(layer_,df_xlsx):
+
+    # new field where BLOCK is POINT
+    df_xlsx['Geom_Type'] = np.where(df_xlsx['GEOMETRY'] == 'BLOCK','POINT',df_xlsx['GEOMETRY'])
+    # join xlsx and df on layer name
+    result               = layer_.df.set_index('Layer').join(df_xlsx,how='inner')
+    # query to get the right layer from 
+    result               = result[(result["Entity"]  ==  'Insert') & (result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull()) & (result['Geom_Type'] == result["geom_type"])]
+
+    result  = result[["BLOCK_NAME","Geom_Type","FC","SHAPE@"]]
+    dict_   = result.T.to_dict('list')
+    return dict_

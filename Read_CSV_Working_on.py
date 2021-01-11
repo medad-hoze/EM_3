@@ -3,6 +3,7 @@
 import pandas as pd
 import json
 import arcpy,os
+import numpy as np
 
 from Engine_class import Layer_Engine
 from Basic_Tools  import *
@@ -21,19 +22,19 @@ layer_poly  = Layer_Engine(poly_path)
 layer_line  = Layer_Engine(line_path)
 layer_point = Layer_Engine(point_path)
 
-layers        = [layer_poly.df,layer_line.df,layer_point.df]
+df_xlsx      = read_excel_sheets(xlsx).set_index('LAYER')
 
-All_df  = pd.concat(layers, ignore_index=True).set_index('Layer')
+dict_poly  = join_and_query_dfs(layer_poly,df_xlsx)
+dict_line  = join_and_query_dfs(layer_line,df_xlsx)
+dict_point = join_and_query_dfs(layer_point,df_xlsx)
 
 
-df_xlsx = read_excel_sheets(xlsx).set_index('LAYER')
+print (dict_poly)
+print (dict_line)
+print (dict_point)
 
-result  = All_df.join(df_xlsx,how='inner')
+# result.to_csv(r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\excel.csv',encoding='utf-8')
 
-a = result
-
-a.to_csv(r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\excel.csv',encoding='utf-8')
-print (a)
 
 # .agg({'Layer', lambda x: list(x)}))
 

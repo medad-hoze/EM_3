@@ -43,7 +43,7 @@ class Layer_Engine():
 
     def Extract_shape(self):
         
-        if self.shapetype != 'Point':
+        if self.shapetype != 'POINT':
             columns_shape            = [self.oid,'X','Y','Layer','Area','SHAPE']
             self.data_shape          = [[i[1],j.X,j.Y,i[2],i[3],i[0]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) for n in i[0] for j in n if j]
             self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
@@ -91,7 +91,7 @@ class Layer_Engine():
         [INFO] - return close vrtxs but only if bigger then 0
         '''
         vertxs              = [[i[1],i[2]] for i in self.data_shape if i[3] == layer_name]
-        if self.shapetype != 'Point' and self.data_shape != None and len(vertxs) < 2000:
+        if self.shapetype != 'POINT' and self.data_shape != None and len(vertxs) < 2000:
             dis_array        = distance_matrix(vertxs,vertxs)
             dis_array        = np.where(dis_array==0, 99999, dis_array) 
             closest_points   = dis_array.argmin(axis = 0)
@@ -103,7 +103,7 @@ class Layer_Engine():
 
     def Zero_Area(self):
 
-        if self.shapetype == 'Polygon':
+        if self.shapetype == 'POLYGON':
             self.bad_area = [[i[4],i[3]] for i in self.data_shape if i[4] <= 0]
             if self.bad_area:
                 return self.bad_area
@@ -111,7 +111,7 @@ class Layer_Engine():
             self.bad_area = False
             
     def Curves(self,Out_put):
-        if self.shapetype in ['Polygon','Polyline']:
+        if self.shapetype in ['POLYGON','POLYLINE']:
             curves_list = [n for i in self.data for n in i if 'describe geometry object' in str(n) if 'curve' in str(json.loads(i[-1].JSON))]
             if curves_list:
                 arcpy.CopyFeatures_management(curves_list,Out_put)
@@ -124,7 +124,7 @@ class Layer_Engine():
 
     def Check_Block_0_0(self):
 
-        if self.shapetype == 'Point':
+        if self.shapetype == 'POINT':
             df2 = self.df_shape.copy()
             df2.where  ((df2["X"]==0) & (df2["Y"]==0), inplace = True)
             df2 = df2.dropna (axis=0, how='all')
@@ -167,16 +167,11 @@ class Layer_Management():
             self.gdb          = os.path.dirname  (Layer)
             self.name         = os.path.basename (Layer)
             self.layer        = Layer
-            self.oid          = str(arcpy.Describe(Layer).OIDFieldName)
-            self.sr           = arcpy.Describe (Layer).spatialReference
+            self.desc         = arcpy.Describe(layer)
+            self.oid          = str(self.desc.OIDFieldName)
+            self.sr           = self.desc.spatialReference
+            self.Geom_type    = ShapeType(self.desc)
 
-            desc = arcpy.Describe(Layer)
-            if str(desc.shapeType) == 'Point':
-                self.Geom_type = 'Point'
-            elif str(desc.shapeType) == 'Polyline':
-                self.Geom_type = 'Polyline'
-            else:
-                self.Geom_type = 'Polygon'
         else:
             print_arcpy_message ("Layer is not exist")
             pass
