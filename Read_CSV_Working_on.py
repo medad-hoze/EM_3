@@ -65,39 +65,3 @@ Insert_dict_to_layers(dict_line,gdb)
 Insert_dict_to_layers(dict_point,gdb)
 
 print_arcpy_message(" #      #      #       F I N S H       #      #      #",status = 1)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# result.to_csv(r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\excel.csv',encoding='utf-8')
-
-
-# .agg({'Layer', lambda x: list(x)}))
-
-# print (layer_1.df.groupby('Layer').len_rows)
-# .agg({'Entity', list})
-# print (layer_1.df.groupby(['Layer']).Entity.unique().reset_index())
-# .agg({'qty': [('std_qty','std'), ('mean_qty','mean')]})
-
-# df      = pd.read_csv(csv_)
-
-# cols = df.columns.difference(['Col1'])
-
-# print (cols)
-
-# result = df.to_json(orient="index")
-# parsed = json.loads(result)
-# print (parsed["216"]["OWNER"])
-
