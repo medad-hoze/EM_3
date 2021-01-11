@@ -12,6 +12,9 @@ from Basic_Tools  import *
 xlsx = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
 path = r"C:\GIS_layers\Vector\bad_DWG\15_11_2019\Migrash_528_2.dwg"
 
+GDB_file = r'C:\GIS_layers'
+GDB_name = os.path.basename(path).split('.')[0]
+
 poly_path    = path + "\\" + "Polygon"
 line_path    = path + "\\" + "Polyline"
 point_path   = path + "\\" + "Point"
@@ -28,10 +31,16 @@ dict_poly   = join_and_query_dfs(layer_poly,df_xlsx)
 dict_line   = join_and_query_dfs(layer_line,df_xlsx)
 dict_point  = join_and_query_dfs(layer_point,df_xlsx)
 
-
-print (dict_poly)
-print (dict_line)
 print (dict_point)
+
+gdb = Create_GDB(GDB_file,GDB_name)
+
+create_layers(gdb,dict_poly)
+create_layers(gdb,dict_line)
+create_layers(gdb,dict_point)
+
+
+
 
 # result.to_csv(r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\excel.csv',encoding='utf-8')
 

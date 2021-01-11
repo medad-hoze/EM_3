@@ -386,6 +386,13 @@ def join_and_query_dfs(layer_,df_xlsx):
     # query to get the right layer from 
     result               = result[(result["Entity"]  ==  'Insert') & (result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull()) & (result['Geom_Type'] == result["geom_type"])]
 
-    result  = result[["BLOCK_NAME","Geom_Type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+    result  = result[["BLOCK_NAME","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
     dict_   = result.T.to_dict('list')
     return dict_
+
+
+def create_layers(gdb,dict_):
+    arcpy.env.workspace = gdb
+    layers              = [str(i) for i in arcpy.ListFeatureClasses()]
+    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[3]),value[2]) for key, value in dict_.items() if str(value[3]) not in layers]
+
