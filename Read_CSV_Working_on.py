@@ -22,11 +22,11 @@ layer_poly  = Layer_Engine(poly_path)
 layer_line  = Layer_Engine(line_path)
 layer_point = Layer_Engine(point_path)
 
-df_xlsx      = read_excel_sheets(xlsx).set_index('LAYER')
+df_xlsx     = read_excel_sheets(xlsx).set_index('LAYER')
 
-dict_poly  = join_and_query_dfs(layer_poly,df_xlsx)
-dict_line  = join_and_query_dfs(layer_line,df_xlsx)
-dict_point = join_and_query_dfs(layer_point,df_xlsx)
+dict_poly   = join_and_query_dfs(layer_poly,df_xlsx)
+dict_line   = join_and_query_dfs(layer_line,df_xlsx)
+dict_point  = join_and_query_dfs(layer_point,df_xlsx)
 
 
 print (dict_poly)
