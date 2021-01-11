@@ -31,14 +31,17 @@ dict_poly   = join_and_query_dfs(layer_poly,df_xlsx)
 dict_line   = join_and_query_dfs(layer_line,df_xlsx)
 dict_point  = join_and_query_dfs(layer_point,df_xlsx)
 
-print (dict_point)
-
 gdb = Create_GDB(GDB_file,GDB_name)
 
 create_layers(gdb,dict_poly)
 create_layers(gdb,dict_line)
 create_layers(gdb,dict_point)
 
+Insert_dict_to_layers(dict_poly,gdb)
+Insert_dict_to_layers(dict_line,gdb)
+Insert_dict_to_layers(dict_point,gdb)
+
+    
 
 
 

@@ -394,5 +394,31 @@ def join_and_query_dfs(layer_,df_xlsx):
 def create_layers(gdb,dict_):
     arcpy.env.workspace = gdb
     layers              = [str(i) for i in arcpy.ListFeatureClasses()]
-    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[3]),value[2]) for key, value in dict_.items() if str(value[3]) not in layers]
+    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[3]),value[1]) for key, value in dict_.items() if str(value[3]) not in layers]
 
+def add_field(fc,field,Type = 'TEXT'):
+    TYPE = [i.name for i in arcpy.ListFields(fc) if i.name == field]
+    if not TYPE:
+        arcpy.AddField_management (fc, field, Type, "", "", 500)
+
+
+
+def Insert_dict_to_layers(dict_,gdb):
+    arcpy.env.workspace = gdb
+    layers              = arcpy.ListFeatureClasses()
+    for i in layers:
+        desc            = arcpy.Describe(i)
+        shapetype       = ShapeType(desc)
+        add_field(i,'data_type',Type = 'TEXT')
+        add_field(i,'block_name',Type = 'TEXT')
+        add_field(i,'layer',Type = 'TEXT')
+        insert     = arcpy.InsertCursor(i)
+        insert_raw = insert.newRow()
+        for key,value in dict_.items():
+            if str(i) == str(value[3]):
+                if shapetype == str(value[2]):
+                    insert_raw.shape      = value[6]
+                    insert_raw.data_type  = str(value[1])
+                    insert_raw.block_name = str(value[0])
+                    insert_raw.layer      = str(key)
+                    insert.insertRow  (insert_raw)
