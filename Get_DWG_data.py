@@ -26,9 +26,9 @@ layer_poly  = Layer_Engine(poly_path)
 layer_line  = Layer_Engine(line_path)
 layer_point = Layer_Engine(point_path)
 
-layer_poly.Get_Field_Count_to_df('Layer')
-layer_line.Get_Field_Count_to_df('Layer')
-layer_point.Get_Field_Count_to_df('Layer')
+layer_poly.Groupby_and_count('Layer')
+layer_line.Groupby_and_count('Layer')
+layer_point.Groupby_and_count('Layer')
 
 
 poly_dict  = layer_poly.Dict('Layer')
