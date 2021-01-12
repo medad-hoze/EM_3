@@ -159,6 +159,24 @@ class Layer_Engine():
         return count_data
 
     
+    def Dict(self,index_key):
+
+        dict_  = self.df.set_index(index_key)
+        dict_2 = dict_.T.to_dict()
+        return dict_2
+
+    def create_csv(self,out_put):
+        out_put = out_put + '\\' + self.shapetype + '.csv'
+        self.df.to_csv(out_put,encoding ='utf-8')
+
+    def Groupby_and_count(self,field,name_field_count = ''):
+
+        if name_field_count == '':
+            name_field_count = str(field) + "_num"
+        count_data = self.df.groupby(field).size()
+        count_data = count_data.to_frame().reset_index()
+        self.df = count_data
+
 
 class Layer_Management():
 

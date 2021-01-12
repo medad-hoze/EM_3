@@ -429,6 +429,13 @@ def Insert_dict_to_layers(dict_,gdb):
                     insert.insertRow  (insert_raw)
 
 
+def uniq_fields_in_FDs_to_List(DFs_list,fields_list):
+
+    df_conc  = pd.concat(DFs_list)
+    df_conc  = df_conc[fields_list].values.tolist()
+    uniq_FCs = list(set(tuple(row) for row in df_conc))
+
+    return uniq_FCs
 
 # def Get_Attri_blocks_to_dict(df_attri,layer_point):
 #     df_attri    = read_excel[~read_excel['LAYER.1'].isnull()]

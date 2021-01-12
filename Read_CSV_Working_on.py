@@ -49,9 +49,8 @@ gdb = Create_GDB(GDB_file,GDB_name)
 
 print_arcpy_message(" # # #   create_layers   # # #",status = 1)
 
-df_conc  = pd.concat([df_filter_poly,df_filter_line,df_filter_point])
-df_conc  = df_conc[["FC","Geom_Type"]].values.tolist()
-uniq_FCs = list(set(tuple(row) for row in df_conc))
+
+uniq_FCs = uniq_fields_in_FDs_to_List ([df_filter_poly,df_filter_line,df_filter_point],["FC","Geom_Type"])
 
 create_layers(gdb,uniq_FCs)
 
