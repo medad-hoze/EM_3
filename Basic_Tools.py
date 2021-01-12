@@ -382,30 +382,33 @@ def join_and_query_dfs(layer_,df_xlsx):
     # new field where BLOCK is POINT
     df_xlsx['Geom_Type'] = np.where(df_xlsx['GEOMETRY'] == 'BLOCK','POINT',df_xlsx['GEOMETRY'])
     # join xlsx and df on layer name
-    result               = layer_.df.set_index('Layer').join(df_xlsx,how='inner')
+    result               = layer_.df.merge(df_xlsx,how='inner',left_on= 'Layer', right_on = 'LAYER')
     # query to get the right layer from 
-    result               = result[(result["Entity"]  ==  'Insert') & (result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull()) & (result['Geom_Type'] == result["geom_type"])]
+    result               = result[(result["Entity"]  ==  'Insert') & ((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
 
-    result  = result[["BLOCK_NAME","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+    result  = result[["BLOCK_NAME","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+
     dict_   = result.T.to_dict('list')
-    return dict_
+
+    return dict_,result
 
 
-def Get_Attri_blocks_to_dict(df_attri,layer_point):
+# def Get_Attri_blocks_to_dict(df_attri,layer_point):
+#     df_attri    = read_excel[~read_excel['LAYER.1'].isnull()]
+#     df_attri    = df_attri.set_index('LAYER.1')
 
-    df_attri['Geom_Type'] = np.where(df_attri['GEOMETRY'] == 'BLOCK','POINT',df_attri['GEOMETRY'])
-    result               = layer_point.df.set_index('Layer').join(df_attri,how='inner')
-    result               = result[(result["Entity"]  ==  'Insert') & (result['BLOCK_NAME.1'] == result['RefName'])]
+#     df_attri['Geom_Type'] = np.where(df_attri['GEOMETRY'] == 'BLOCK','POINT',df_attri['GEOMETRY'])
+#     result               = layer_point.df.set_index('Layer').join(df_attri,how='inner')
+#     result               = result[(result["Entity"]  ==  'Insert') & (result['BLOCK_NAME.1'] == result['RefName'])]
 
-    result  = result[["BLOCK_NAME","Geom_Type","FC","BLOCK_NAME.1","SHAPE@"]]
-    dict_   = result.T.to_dict('list')
-    return dict_
+#     result  = result[["BLOCK_NAME","Geom_Type","FC","BLOCK_NAME.1","SHAPE@"]]
+#     dict_   = result.T.to_dict('list')
+#     return dict_
 
 
-def create_layers(gdb,dict_):
+def create_layers(gdb,list_fc_type):
     arcpy.env.workspace = gdb
-    layers              = [str(i) for i in arcpy.ListFeatureClasses()]
-    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[3]),value[1]) for key, value in dict_.items() if str(value[3]) not in layers]
+    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[0]),value[1]) for value in list_fc_type]
 
 def add_field(fc,field,Type = 'TEXT'):
     TYPE = [i.name for i in arcpy.ListFields(fc) if i.name == field]
@@ -426,12 +429,12 @@ def Insert_dict_to_layers(dict_,gdb):
         insert     = arcpy.InsertCursor(i)
         insert_raw = insert.newRow()
         for key,value in dict_.items():
-            if str(i) == str(value[3]):
+            if str(i) == str(value[4]):
                 if shapetype == str(value[2]):
-                    insert_raw.shape      = value[6]
-                    insert_raw.data_type  = str(value[1])
+                    insert_raw.shape      = value[7]
+                    insert_raw.data_type  = str(value[2])
                     insert_raw.block_name = str(value[0])
-                    insert_raw.layer      = str(key)
+                    insert_raw.layer      = str(value[1])
                     insert.insertRow  (insert_raw)
 
 
