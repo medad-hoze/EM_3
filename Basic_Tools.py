@@ -389,11 +389,17 @@ def join_and_query_dfs(layer_,df_xlsx):
     else:
         result               = result[((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
 
-    result  = result[["BLOCK_NAME","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
 
-    dict_   = result.T.to_dict('list')
+    result_error  = layer_.df.merge(df_xlsx,how='left',left_on= 'Layer', right_on = 'LAYER')
+    result_error  = result_error[(result_error['Geom_Type'] != result_error['geom_type'])]
 
-    return dict_,result
+    result       = result[["BLOCK_NAME","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+    result_error = result_error[["BLOCK_NAME","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+
+    dict_        = result.T.to_dict      ('list')
+    dict_error   = result_error.T.to_dict ('list')
+
+    return dict_,result,dict_error,result_error
 
 
 
@@ -427,6 +433,30 @@ def Insert_dict_to_layers(dict_,gdb):
                     insert_raw.block_name = str(value[0])
                     insert_raw.layer      = str(value[1])
                     insert.insertRow  (insert_raw)
+
+
+def Insert_dict_error_to_layers(dict_,gdb,Type):
+
+    i = arcpy.CreateFeatureclass_management(gdb,Type,Type)
+    desc            = arcpy.Describe(i)
+    shapetype       = ShapeType(desc)
+    add_field(i,'data_type_layer',Type = 'TEXT')
+    add_field(i,'data_type_xslx',Type = 'TEXT')
+    add_field(i,'block_name',Type = 'TEXT')
+    add_field(i,'layer',Type = 'TEXT')
+    add_field(i,'FC',Type = 'TEXT')
+
+    insert     = arcpy.InsertCursor(i)
+    insert_raw = insert.newRow()
+    for key,value in dict_.items():
+        if shapetype == str(value[3]):
+            insert_raw.shape           = value[-1]
+            insert_raw.data_type_layer = str(value[3])
+            insert_raw.data_type_xslx  = str(value[2])
+            insert_raw.block_name      = str(value[0])
+            insert_raw.layer           = str(value[1])
+            insert_raw.FC              = str(value[4])
+            insert.insertRow  (insert_raw)
 
 
 def uniq_fields_in_FDs_to_List(DFs_list,fields_list):
