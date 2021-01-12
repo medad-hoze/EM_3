@@ -384,7 +384,10 @@ def join_and_query_dfs(layer_,df_xlsx):
     # join xlsx and df on layer name
     result               = layer_.df.merge(df_xlsx,how='inner',left_on= 'Layer', right_on = 'LAYER')
     # query to get the right layer from 
-    result               = result[(result["Entity"]  ==  'Insert') & ((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
+    if layer_.shapetype == 'POINT':
+        result               = result[(result["Entity"]  ==  'Insert') & ((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
+    else:
+        result               = result[((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
 
     result  = result[["BLOCK_NAME","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
 
@@ -392,18 +395,6 @@ def join_and_query_dfs(layer_,df_xlsx):
 
     return dict_,result
 
-
-# def Get_Attri_blocks_to_dict(df_attri,layer_point):
-#     df_attri    = read_excel[~read_excel['LAYER.1'].isnull()]
-#     df_attri    = df_attri.set_index('LAYER.1')
-
-#     df_attri['Geom_Type'] = np.where(df_attri['GEOMETRY'] == 'BLOCK','POINT',df_attri['GEOMETRY'])
-#     result               = layer_point.df.set_index('Layer').join(df_attri,how='inner')
-#     result               = result[(result["Entity"]  ==  'Insert') & (result['BLOCK_NAME.1'] == result['RefName'])]
-
-#     result  = result[["BLOCK_NAME","Geom_Type","FC","BLOCK_NAME.1","SHAPE@"]]
-#     dict_   = result.T.to_dict('list')
-#     return dict_
 
 
 def create_layers(gdb,list_fc_type):
@@ -438,11 +429,26 @@ def Insert_dict_to_layers(dict_,gdb):
                     insert.insertRow  (insert_raw)
 
 
-def Connect_attri_layer(dict_attri,dict_poly):
-    intersect = []
-    for key,item in dict_attri.items():
-        if dict_poly.has_key(key):
-            if item[-1].distanceTo(dict_poly[key][-1]) == 0:
-                intersect.append(key)
-    print "Intersects:", intersect
-    return intersect
+
+# def Get_Attri_blocks_to_dict(df_attri,layer_point):
+#     df_attri    = read_excel[~read_excel['LAYER.1'].isnull()]
+#     df_attri    = df_attri.set_index('LAYER.1')
+
+#     df_attri['Geom_Type'] = np.where(df_attri['GEOMETRY'] == 'BLOCK','POINT',df_attri['GEOMETRY'])
+#     result               = layer_point.df.set_index('Layer').join(df_attri,how='inner')
+#     result               = result[(result["Entity"]  ==  'Insert') & (result['BLOCK_NAME.1'] == result['RefName'])]
+
+#     result  = result[["BLOCK_NAME","Geom_Type","FC","BLOCK_NAME.1","SHAPE@"]]
+#     dict_   = result.T.to_dict('list')
+#     return dict_
+
+
+
+# def Connect_attri_layer(dict_attri,dict_poly):
+#     intersect = []
+#     for key,item in dict_attri.items():
+#         if dict_poly.has_key(key):
+#             if item[-1].distanceTo(dict_poly[key][-1]) == 0:
+#                 intersect.append(key)
+#     print "Intersects:", intersect
+#     return intersect

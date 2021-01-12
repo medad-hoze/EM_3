@@ -12,8 +12,8 @@ from Basic_Tools  import *
 xlsx = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
 
 # path = r"C:\GIS_layers\Vector\bad_DWG\15_11_2019\Migrash_528_2.dwg"
-# path = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
-path = r'C:\GIS_layers\Vector\bad_DWG\16_9_2019\100239-28-040819(1561).dwg'
+path = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
+# path = r'C:\GIS_layers\Vector\bad_DWG\16_9_2019\100239-28-040819(1561).dwg'
 
 GDB_file = r'C:\GIS_layers'
 
