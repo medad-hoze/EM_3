@@ -379,10 +379,11 @@ def read_excel_sheets(path2):
 
 def join_and_query_dfs(layer_,df_xlsx):
 
+    layer_.df['index1'] = layer_.df.index
     # new field where BLOCK is POINT
     df_xlsx['Geom_Type'] = np.where(df_xlsx['GEOMETRY'] == 'BLOCK','POINT',df_xlsx['GEOMETRY'])
     # join xlsx and df on layer name
-    result               = layer_.df.merge(df_xlsx,how='inner',left_on= 'Layer', right_on = 'LAYER')
+    result               = layer_.df.merge(df_xlsx,how='inner',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
     # query to get the right layer from 
     if layer_.shapetype == 'POINT':
         result               = result[(result["Entity"]  ==  'Insert') & ((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
@@ -390,11 +391,12 @@ def join_and_query_dfs(layer_,df_xlsx):
         result               = result[((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
 
 
-    result_error  = layer_.df.merge(df_xlsx,how='left',left_on= 'Layer', right_on = 'LAYER')
-    result_error  = result_error[(result_error['Geom_Type'] != result_error['geom_type'])]
+    result_error = layer_.df.loc[~layer_.df['index1'].isin(result['index1'])]
+    result_error  = result_error.merge(df_xlsx,how='left',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
 
-    result       = result[["BLOCK_NAME","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
-    result_error = result_error[["BLOCK_NAME","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+
+    result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+    result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
 
     dict_        = result.T.to_dict      ('list')
     dict_error   = result_error.T.to_dict ('list')
@@ -421,17 +423,19 @@ def Insert_dict_to_layers(dict_,gdb):
         desc            = arcpy.Describe(i)
         shapetype       = ShapeType(desc)
         add_field(i,'data_type',Type = 'TEXT')
-        add_field(i,'block_name',Type = 'TEXT')
+        add_field(i,'BLOCK_NAME',Type = 'TEXT')
+        add_field(i,'RefName',Type = 'TEXT')
         add_field(i,'layer',Type = 'TEXT')
         insert     = arcpy.InsertCursor(i)
         insert_raw = insert.newRow()
         for key,value in dict_.items():
-            if str(i) == str(value[4]):
-                if shapetype == str(value[2]):
-                    insert_raw.shape      = value[7]
-                    insert_raw.data_type  = str(value[2])
-                    insert_raw.block_name = str(value[0])
-                    insert_raw.layer      = str(value[1])
+            if str(i) == str(value[5]):
+                if shapetype == str(value[3]):
+                    insert_raw.shape      = value[8]
+                    insert_raw.data_type  = str(value[3])
+                    insert_raw.BLOCK_NAME = str(value[0])
+                    insert_raw.layer      = str(value[2])
+                    insert_raw.RefName    = str(value[1])
                     insert.insertRow  (insert_raw)
 
 
@@ -442,20 +446,22 @@ def Insert_dict_error_to_layers(dict_,gdb,Type):
     shapetype       = ShapeType(desc)
     add_field(i,'data_type_layer',Type = 'TEXT')
     add_field(i,'data_type_xslx',Type = 'TEXT')
-    add_field(i,'block_name',Type = 'TEXT')
+    add_field(i,'BLOCK_NAME',Type = 'TEXT')
+    add_field(i,'RefName',Type = 'TEXT')
     add_field(i,'layer',Type = 'TEXT')
     add_field(i,'FC',Type = 'TEXT')
 
     insert     = arcpy.InsertCursor(i)
     insert_raw = insert.newRow()
     for key,value in dict_.items():
-        if shapetype == str(value[3]):
+        if shapetype == str(value[4]):
             insert_raw.shape           = value[-1]
-            insert_raw.data_type_layer = str(value[3])
-            insert_raw.data_type_xslx  = str(value[2])
-            insert_raw.block_name      = str(value[0])
-            insert_raw.layer           = str(value[1])
-            insert_raw.FC              = str(value[4])
+            insert_raw.data_type_layer = str(value[4])
+            insert_raw.data_type_xslx  = str(value[3])
+            insert_raw.BLOCK_NAME      = str(value[0])
+            insert_raw.RefName         = str(value[1])
+            insert_raw.layer           = str(value[2])
+            insert_raw.FC              = str(value[5])
             insert.insertRow  (insert_raw)
 
 
