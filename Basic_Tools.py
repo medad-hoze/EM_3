@@ -281,7 +281,7 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     x_y       = [[i[1],i[2]] for i in Line_object.data_shape]
     if x_y[0]:
         far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],100000)  # enough chacking 1 vertex of line to know if block is to far
-        far_point = far_point[['Layer','Entity','X_Y']][(far_point['X'] != 0.0) | (far_point['Y'] != 0.0)].values.tolist()
+        far_point = far_point[['Layer','Entity','X_Y']][((far_point['X'] != 0.0) | (far_point['Y'] != 0.0)) & (far_point['Entity'] == 'Insert')].values.tolist()
         if len(far_point) > 0:
             print_arcpy_message ('you have blocks far from AOI',2)
             blocks.append       ('you have blocks far from AOI')
@@ -289,9 +289,6 @@ def Check_Blocks (obj_blocks,Point,Line_object):
                 blocks.append       ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]))
                 print_arcpy_message ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]),2)
         
-        print_arcpy_message(far_point)
-
-
     return blocks
 
 def Check_Lines(obj_lines):
