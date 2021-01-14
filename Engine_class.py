@@ -143,7 +143,7 @@ class Layer_Engine():
 
         if self.shapetype == 'POINT':
             df2 = self.df_shape.copy()
-            df2.where  ((df2["X"]==0) & (df2["Y"]==0) & (df2["Entity"]=="Insert"), inplace = True)
+            df2.where  ((df2["X"]==0) & (df2["Y"]==0), inplace = True)
             df2 = df2.dropna (axis=0, how='all')
             Block_at_0_0 = df2.values.tolist()
             return Block_at_0_0

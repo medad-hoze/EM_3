@@ -270,10 +270,10 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     # check if there is block in coordinate 0,0
     at_Zero_Zero = obj_blocks.Check_Block_0_0()
     if len(at_Zero_Zero) > 0:
-        print_arcpy_message ('you have blocks at coordinats 0,0',2)
-        blocks.append       ('you have blocks at coordinats 0,0')
+        print_arcpy_message ('you have blocks at coordinates 0,0',2)
+        blocks.append       ('you have blocks at coordinates 0,0')
         for i in at_Zero_Zero:
-            blocks.append       ('layer: {}, have blocks at coordinats 0,0'.format(i[1]))
+            blocks.append       ('layer: {}, have blocks at coordinates 0,0'.format(i[1]))
             print_arcpy_message('block: {}'.format(str(i)),2)
 
 
@@ -281,14 +281,17 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     x_y       = [[i[1],i[2]] for i in Line_object.data_shape]
     if x_y[0]:
         far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],100000)  # enough chacking 1 vertex of line to know if block is to far
-        far_point = far_point[['Layer','Entity','X_Y']][((far_point['X'] != 0.0) | (far_point['Y'] != 0.0)) & (far_point['Entity'] == 'Insert')].values.tolist()
+        far_point = far_point[['Layer','Entity','X_Y']][(far_point['X'] != 0.0) | (far_point['Y'] != 0.0)].values.tolist()
         if len(far_point) > 0:
             print_arcpy_message ('you have blocks far from AOI',2)
             blocks.append       ('you have blocks far from AOI')
             for i in far_point:
-                blocks.append       ('layer: {}, block name: {}, have coordinats at  {}'.format(i[0],i[1],i[2]))
-                print_arcpy_message ('layer: {}, block name: {}, have coordinats at  {}'.format(i[0],i[1],i[2]),2)
+                blocks.append       ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]))
+                print_arcpy_message ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]),2)
         
+        print_arcpy_message(far_point)
+
+
     return blocks
 
 def Check_Lines(obj_lines):
@@ -449,7 +452,11 @@ def join_and_query_dfs(layer_,df_xlsx):
 
 def create_layers(gdb,list_fc_type):
     arcpy.env.workspace = gdb
-    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[0]),value[1]) for value in list_fc_type]
+    temp_layer = "in_memory" + '\\' + "template"
+    arcpy.CreateFeatureclass_management("in_memory","template","POINT")
+    add_Fields = [add_field(temp_layer,i) for i in ['data_type','BLOCK_NAME','RefName','layer']]
+    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[0]),value[1],temp_layer) for value in list_fc_type]
+
 
 def add_field(fc,field,Type = 'TEXT'):
     TYPE = [i.name for i in arcpy.ListFields(fc) if i.name == field]
@@ -462,49 +469,25 @@ def Insert_dict_to_layers(dict_,gdb):
     arcpy.env.workspace = gdb
     layers              = arcpy.ListFeatureClasses()
     for i in layers:
-        desc            = arcpy.Describe(i)
-        shapetype       = ShapeType(desc)
-        add_field(i,'data_type',Type = 'TEXT')
-        add_field(i,'BLOCK_NAME',Type = 'TEXT')
-        add_field(i,'RefName',Type = 'TEXT')
-        add_field(i,'layer',Type = 'TEXT')
-        insert     = arcpy.InsertCursor(i)
-        insert_raw = insert.newRow()
-        for key,value in dict_.items():
-            if str(i) == str(value[5]):
-                if shapetype == str(value[3]):
-                    insert_raw.shape      = value[8]
-                    insert_raw.data_type  = str(value[3])
-                    insert_raw.BLOCK_NAME = str(value[0])
-                    insert_raw.layer      = str(value[2])
-                    insert_raw.RefName    = str(value[1])
-                    insert.insertRow  (insert_raw)
+        desc          = arcpy.Describe(i)
+        shapetype     = ShapeType(desc)
+        fields        = ["BLOCK_NAME","RefName","layer","data_type","SHAPE@"]
+        insert        = arcpy.da.InsertCursor(i,fields)
 
+        insertion     = [insert.insertRow  ([str(value[0]),str(value[1]),str(value[2]),str(value[3]),value[8]])\
+                        for key,value in dict_.items() if str(i) == str(value[5]) if shapetype == str(value[3])]
 
 def Insert_dict_error_to_layers(dict_,gdb,Type):
 
-    i = arcpy.CreateFeatureclass_management(gdb,Type,Type)
-    desc            = arcpy.Describe(i)
-    shapetype       = ShapeType(desc)
-    add_field(i,'data_type_layer',Type = 'TEXT')
-    add_field(i,'data_type_xslx',Type = 'TEXT')
-    add_field(i,'BLOCK_NAME',Type = 'TEXT')
-    add_field(i,'RefName',Type = 'TEXT')
-    add_field(i,'layer',Type = 'TEXT')
-    add_field(i,'FC',Type = 'TEXT')
+    i          = arcpy.CreateFeatureclass_management(gdb,Type,Type)
+    desc       = arcpy.Describe(i)
+    shapetype  = ShapeType(desc)
+    fields     = ['data_type_layer','data_type_xslx','BLOCK_NAME','RefName','layer','FC','SHAPE@']
+    add_Fields = [add_field(i,f) for f in fields if f != 'SHAPE@']
 
-    insert     = arcpy.InsertCursor(i)
-    insert_raw = insert.newRow()
-    for key,value in dict_.items():
-        if shapetype == str(value[4]):
-            insert_raw.shape           = value[-1]
-            insert_raw.data_type_layer = str(value[4])
-            insert_raw.data_type_xslx  = str(value[3])
-            insert_raw.BLOCK_NAME      = str(value[0])
-            insert_raw.RefName         = str(value[1])
-            insert_raw.layer           = str(value[2])
-            insert_raw.FC              = str(value[5])
-            insert.insertRow  (insert_raw)
+    insert    = arcpy.da.InsertCursor(i,fields)
+    insertion = [insert.insertRow  ([str(value[4]),str(value[3]),str(value[0]),str(value[1]),str(value[2]),str(value[5]),value[-1]])\
+                for key,value in dict_.items() if shapetype == str(value[4])]
 
 
 def uniq_fields_in_FDs_to_List(DFs_list,fields_list):
