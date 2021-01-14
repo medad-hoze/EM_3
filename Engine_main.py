@@ -14,8 +14,8 @@ from Engine_class       import Layer_Engine
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-# DWG        = r"C:\Users\Administrator\Desktop\medad\python\Work\cad_to_gis_irit\EL221201.dwg"
-DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS        = [r"C:\GIS_layers\Vector\bad_DWG\14_1_2021\50552-1.dwg"]
+#DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
@@ -80,7 +80,7 @@ for DWG in DWGS:
 
     cheak_version  = cheak_cad_version (DWG)
     Check_decler   = cheak_declaration (delcar,lines_M)
-    check_Blocks   = Check_Blocks      (blocks,Point)
+    check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
     check_Lines    = Check_Lines       (lines_M)
 
     check_CADtoGeo   = Cheak_CADtoGeoDataBase(DWG,fgdb_name)

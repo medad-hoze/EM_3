@@ -53,6 +53,23 @@ class Layer_Engine():
             columns_shape            = [self.oid,'Layer','Entity','LyrHandle','X','Y']
             self.data_shape          = [[i[1],i[2],i[3],i[4],i[0].labelPoint.X,i[0].labelPoint.Y] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,"Layer","Entity","LyrHandle"]) if i[0]]
             self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
+            self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
+
+    def Filter_point_by_max_distance(self,X_Y,distance):
+
+        if self.shapetype == 'POINT':
+            if self.data_shape:
+                point_data = [[item[4],item[5]] for item in self.data_shape]
+                result     = Dis_2arrays_max(point_data,X_Y,distance,15)
+                result     = [i[0] for i in result]
+                df2        = self.df_shape.copy()
+                df2        = df2[df2['X_Y'].isin(result)]
+                return df2
+            else:
+                print ("Func Extract_shape wasnt activated")
+        else:
+            print ("Feature isn't POINT")
+
 
     def Len_field(self,field,as_int = False):
 

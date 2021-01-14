@@ -5,6 +5,7 @@ import arcpy
 import pandas as pd
 import uuid,json,datetime,sys,csv,os,math
 import numpy as np
+from scipy.spatial import distance_matrix
 
 arcpy.env.overwriteOutPut = True
 
@@ -138,6 +139,34 @@ def Create_Polygon_From_Line(polyline,Out_put,fillter,field_name):
     return Out_put
 
 
+def Dis_2arrays_max(pts_1,pts_2,Max_num = 10000,After_zero = 2):
+    
+    '''
+    [INFO]
+        Find the longest points from array1 to array2as [id,pt1,pt2,dis]
+    input: 
+        pts_1 = [[1,2],[2,3]]
+        pts_2 = [[3,5],[4,6]]
+    out_put:
+        array_dis = [['1-2',[1, 2], [4, 6],5.0]
+                     ['2-3'[2, 3], [3, 5]],3.6]
+    
+    '''
+    dis_array  = distance_matrix(pts_1,pts_2)
+    
+    if pts_1 == pts_2:
+        np.fill_diagonal(dis_array,np.inf)
+
+    closest_points = dis_array.argmax(axis = 1)
+    
+    new_list = [[str(round(pts_1[i][0],After_zero)) + '-' + str(round(pts_1[i][1],After_zero))\
+                    ,pts_1[i],pts_2[closest_points[i]],round(dis_array[i,closest_points[i]],After_zero)]\
+                for i in range(len(pts_1)) if dis_array[i,closest_points[i]] > Max_num]
+
+
+    return new_list
+
+
 def dis(x1,x2,y1,y2):
     return math.sqrt(((x1-x2)**2) + ((y1-y2)**2))
 
@@ -227,7 +256,7 @@ def cheak_declaration(obj_declar,obj_line):
     return declaration
 
 
-def Check_Blocks (obj_blocks,Point):
+def Check_Blocks (obj_blocks,Point,Line_object):
     
     blocks     = []
     bad_charc     = ['-','"','.']
@@ -244,7 +273,23 @@ def Check_Blocks (obj_blocks,Point):
         print_arcpy_message ('you have blocks at coordinats 0,0',2)
         blocks.append       ('you have blocks at coordinats 0,0')
         for i in at_Zero_Zero:
+            blocks.append       ('layer: {}, have blocks at coordinats 0,0'.format(i[1]))
             print_arcpy_message('block: {}'.format(str(i)),2)
+
+
+    # Check if there is points with distance then more 100,000m from point
+    x_y       = [[i[1],i[2]] for i in Line_object.data_shape]
+    if x_y[0]:
+        far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],100000)  # enough chacking 1 vertex of line to know if block is to far
+        far_point = far_point[['Layer','Entity','X_Y']][(far_point['X'] != 0.0) | (far_point['Y'] != 0.0)].values.tolist()
+        if len(far_point) > 0:
+            print_arcpy_message ('you have blocks far from AOI',2)
+            blocks.append       ('you have blocks far from AOI')
+            for i in far_point:
+                blocks.append       ('layer: {}, block name: {}, have coordinats at  {}'.format(i[0],i[1],i[2]))
+                print_arcpy_message ('layer: {}, block name: {}, have coordinats at  {}'.format(i[0],i[1],i[2]),2)
+        
+        print_arcpy_message(far_point)
 
 
     return blocks
@@ -323,7 +368,7 @@ def mxd_pdf_making(mxd_path,gdb_path,name,gdb,out_put):
 
         mxd.saveACopy     (gdb + "\\Cheack_"+name+".mxd")
         arcpy.AddMessage  ("Open MXD Copy")
-        os.startfile      (gdb + "\\Cheack_"+name+".mxd")
+        # os.startfile      (gdb + "\\Cheack_"+name+".mxd")
         
         arcpy.mapping.ExportToPDF(mxd,out_put +r"\\Report_"+name+".pdf")
         del mxd
