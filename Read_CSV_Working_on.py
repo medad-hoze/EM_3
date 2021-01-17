@@ -9,13 +9,13 @@ from Engine_class import Layer_Engine
 from Basic_Tools  import *
 
 
-xlsx = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
-
+# xlsx = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
 # path = r"C:\GIS_layers\Vector\bad_DWG\15_11_2019\Migrash_528_2.dwg"
-path = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
 # path = r'C:\GIS_layers\Vector\bad_DWG\16_9_2019\100239-28-040819(1561).dwg'
 
-GDB_file = r'C:\GIS_layers'
+data_file = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Json_try.json"
+path      = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
+GDB_file  = r'C:\GIS_layers'
 
 
 print_arcpy_message(" #      #      #       S T A R T       #      #      #",status = 1)
@@ -33,9 +33,14 @@ layer_poly  = Layer_Engine(poly_path)
 layer_line  = Layer_Engine(line_path)
 layer_point = Layer_Engine(point_path)
 
-print_arcpy_message(" # # #   read_excel_sheets   # # #",status = 1)
+print_arcpy_message(" # # #   read_excel_or_json_sheets   # # #",status = 1)
 
-df_xlsx  = read_excel_sheets(xlsx)
+if data_file.endswith('.xlsx'):
+    df_xlsx  = read_excel_sheets(data_file)
+elif data_file.endswith('.json'):
+    df_xlsx  = pd.read_json(data_file)
+else:
+    print_arcpy_message("reading data from Xlsx and json only")
 
 print_arcpy_message(" # # #   Merge_and_query_dfs   # # #",status = 1)
 
