@@ -21,4 +21,4 @@ def read_excel_to_json(path2,out_put):
 
 path2   = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
 out_put = r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Json_try.json'
-read_excel_to_json(path2)
+read_excel_to_json(path2,out_put)
