@@ -14,8 +14,8 @@ from Engine_class       import Layer_Engine
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-DWGS        = [r"C:\GIS_layers\Vector\bad_DWG\14_1_2021\50552-1.dwg"]
-#DWGS        = arcpy.GetParameterAsText(0).split(';')
+# DWGS        = [r"C:\GIS_layers\Vector\bad_DWG\14_1_2021\50552-1.dwg"]
+DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)

@@ -5,42 +5,53 @@ import json
 import arcpy,os
 import numpy as np
 
-from Engine_class import Layer_Engine
-from Basic_Tools  import *
+
+class Layer_Engine():
+
+    def __init__(self,layer,columns = 'all'):
+
+        if columns == 'all':
+            columns = [str(f.name.encode('UTF-8')) for f in arcpy.ListFields(layer)]
+
+        self.desc            = arcpy.Describe(layer)
+        self.shapetype       = ShapeType(self.desc)
+        self.data            = [row[:] for row in arcpy.da.SearchCursor (layer,columns)]
+        self.df              = pd.DataFrame(data = self.data, columns = columns)
+        self.df["geom_type"] = self.shapetype
 
 
-
-path       = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
-
-folder_csv = r"C:\GIS_layers"
-
-
-
-GDB_name = os.path.basename(path).split('.')[0]
-
-poly_path    = path + "\\" + "Polygon"
-line_path    = path + "\\" + "Polyline"
-point_path   = path + "\\" + "Point"
-
-layer_poly  = Layer_Engine(poly_path)
-layer_line  = Layer_Engine(line_path)
-layer_point = Layer_Engine(point_path)
-
-layer_poly.Groupby_and_count('Layer')
-layer_line.Groupby_and_count('Layer')
-layer_point.Groupby_and_count('Layer')
+def ShapeType(desc):
+    
+    if str(desc.shapeType) == 'Point':
+        Geom_type = 'POINT'
+    elif str(desc.shapeType) == 'Polyline':
+        Geom_type = 'POLYLINE'
+    else:
+        Geom_type = 'POLYGON'
+    return Geom_type
 
 
-poly_dict  = layer_poly.Dict('Layer')
-line_dict  = layer_line.Dict('Layer')
-point_dict = layer_point.Dict('Layer')
+def Get_DWG_data(DWG_path,CSV_Out_put):
+
+    GDB_name = os.path.basename(DWG_path).split('.')[0]
+
+    poly_path    = DWG_path + "\\" + "Polygon"
+    line_path    = DWG_path + "\\" + "Polyline"
+    point_path   = DWG_path + "\\" + "Point"
+
+    layer_poly  = Layer_Engine(poly_path)
+    layer_line  = Layer_Engine(line_path)
+    layer_point = Layer_Engine(point_path)
+
+    df       = pd.concat([layer_poly.df[['Layer','geom_type']],layer_line.df[['Layer','geom_type']],layer_point.df[['Layer','geom_type']]])
+    df_group = df.groupby(['Layer','geom_type']).size()
+
+    df_group.to_csv(CSV_Out_put)
+
+    return (df_group)
 
 
-layer_poly.create_csv(folder_csv)
-layer_line.create_csv(folder_csv)
-layer_point.create_csv(folder_csv)
+dwg_path    = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
+csv_out_put = r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Result_csv.csv'
 
-print (poly_dict)
-print (line_dict)
-print (point_dict)
-
+Get_DWG_data(dwg_path,csv_out_put)

@@ -6,6 +6,7 @@ import pandas as pd
 import uuid,json,datetime,sys,csv,os,math
 import numpy as np
 from scipy.spatial import distance_matrix
+from platform import python_version
 
 arcpy.env.overwriteOutPut = True
 
@@ -112,13 +113,17 @@ def Connect_rows(x,y):
 def cheak_cad_version(DWG):
     
 	dictme={'AC1014':'AutoCAD Release 14','AC1015': 'AutoCAD2000','AC1018': 'AutoCAD2004','AC1021': 'AutoCAD2007','AC1024': 'AutoCAD2010','AC1027': 'AutoCAD2013','AC1032': 'AutoCAD2018'}
-	x = open(DWG,'r').read(6)
+	if (str(python_version())) == '2.7.16': # Arcmap
+		x = open(DWG,'r').read(6)
+	else:
+		file1 = open(DWG,errors='ignore')
+		x     = file1.readline()[:6]
 	cheak_version = []
 	try:
 		cheak_version = [i for n,i in dictme.items() if x == n]
 	except:
 		print_arcpy_message  ("coudent exctract DWG version",status = 2)
-        cheak_version.append ("coudent exctract DWG version")
+		cheak_version.append ("coudent exctract DWG version")
 	
 	bad_ver = ['AutoCAD2000','AutoCAD2013','AutoCAD2018','AutoCAD Release 14']
 	
@@ -413,7 +418,7 @@ def read_excel_sheets(path2):
                 columns = sheet.columns
             sheet.columns = columns
         except:
-            print "coudent read sheet {}".format(name)
+            print ("coudent read sheet {}".format(name))
         df = df.append(sheet,ignore_index = True)
             
     return df
