@@ -12,6 +12,8 @@ class Layer_Engine():
 
         if columns == 'all':
             columns = [str(f.name.encode('UTF-8')) for f in arcpy.ListFields(layer)]
+            columns.extend(['SHAPE@AREA'])
+            columns.extend(["SHAPE@WKT"])
 
         self.desc            = arcpy.Describe(layer)
         self.shapetype       = ShapeType(self.desc)
@@ -31,7 +33,7 @@ def ShapeType(desc):
     return Geom_type
 
 
-def Get_DWG_data(DWG_path,CSV_Out_put):
+def Get_DWG_data(DWG_path,json_folder):
 
     GDB_name = os.path.basename(DWG_path).split('.')[0]
 
@@ -39,19 +41,27 @@ def Get_DWG_data(DWG_path,CSV_Out_put):
     line_path    = DWG_path + "\\" + "Polyline"
     point_path   = DWG_path + "\\" + "Point"
 
+    json_poly  = json_folder + '\\' + 'Polygon.json'
+    json_line  = json_folder + '\\' + 'Polyline.json'
+    json_point = json_folder + '\\' + 'Point.json'
+
     layer_poly  = Layer_Engine(poly_path)
     layer_line  = Layer_Engine(line_path)
     layer_point = Layer_Engine(point_path)
 
-    df       = pd.concat([layer_poly.df[['Layer','geom_type']],layer_line.df[['Layer','geom_type']],layer_point.df[['Layer','geom_type']]])
+    df       = pd.concat([layer_poly.df,layer_line.df,layer_point.df])
     df_group = df.groupby(['Layer','geom_type']).size()
 
-    df_group.to_csv(CSV_Out_put)
+    json_poly  = layer_poly.df.to_json  (json_poly)
+    json_line  = layer_line.df.to_json  (json_line)
+    json_point = layer_point.df.to_json (json_point)
 
-    return (df_group)
+    return df_group
 
 
 dwg_path    = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
-csv_out_put = r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Result_csv.csv'
+csv_out_put = r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis'
 
-Get_DWG_data(dwg_path,csv_out_put)
+dict1 = Get_DWG_data(dwg_path,csv_out_put)
+
+print (dict1)

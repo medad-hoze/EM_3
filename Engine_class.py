@@ -18,7 +18,7 @@ class Layer_Engine():
         if columns == 'all':
             columns = [str(f.name.encode('UTF-8')) for f in arcpy.ListFields(layer)]
             columns.extend(['SHAPE@AREA'])
-            columns.extend(['SHAPE@'])
+            columns.extend(['SHAPE@WKT'])
 
         self.layer           = layer
         self.gdb             = os.path.dirname  (layer)

@@ -426,29 +426,37 @@ def read_excel_sheets(path2):
 
 def join_and_query_dfs(layer_,df_xlsx):
 
-    layer_.df['index1'] = layer_.df.index
+    if not isinstance(layer_, pd.DataFrame):
+        layer_ = layer_.df
+
+    layer_['index1'] = layer_.index
     # new field where BLOCK is POINT
     df_xlsx['Geom_Type'] = np.where(df_xlsx['GEOMETRY'] == 'BLOCK','POINT',df_xlsx['GEOMETRY'])
     # join xlsx and df on layer name
-    result               = layer_.df.merge(df_xlsx,how='inner',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
+    result               = layer_.merge(df_xlsx,how='inner',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
     # query to get the right layer from 
-    if layer_.shapetype == 'POINT':
+    if layer_['geom_type'][0] == 'POINT':
         result               = result[(result["Entity"]  ==  'Insert') & ((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
     else:
         result               = result[((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
 
 
-    result_error = layer_.df.loc[~layer_.df['index1'].isin(result['index1'])]
+    result_error = layer_.loc[~layer_['index1'].isin(result['index1'])]
     result_error  = result_error.merge(df_xlsx,how='left',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
 
-
-    result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
-    result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+    if isinstance(layer_, pd.DataFrame):
+        result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
+        result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
+    else:
+        result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+        result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]        
 
     dict_        = result.T.to_dict      ('list')
     dict_error   = result_error.T.to_dict ('list')
 
     return dict_,result,dict_error,result_error
+
+
 
 
 
@@ -473,7 +481,7 @@ def Insert_dict_to_layers(dict_,gdb):
     for i in layers:
         desc          = arcpy.Describe(i)
         shapetype     = ShapeType(desc)
-        fields        = ["BLOCK_NAME","RefName","layer","data_type","SHAPE@"]
+        fields        = ["BLOCK_NAME","RefName","layer","data_type","SHAPE@WKT"]
         insert        = arcpy.da.InsertCursor(i,fields)
 
         insertion     = [insert.insertRow  ([str(value[0]),str(value[1]),str(value[2]),str(value[3]),value[8]])\
@@ -484,8 +492,8 @@ def Insert_dict_error_to_layers(dict_,gdb,Type):
     i          = arcpy.CreateFeatureclass_management(gdb,Type,Type)
     desc       = arcpy.Describe(i)
     shapetype  = ShapeType(desc)
-    fields     = ['data_type_layer','data_type_xslx','BLOCK_NAME','RefName','layer','FC','SHAPE@']
-    add_Fields = [add_field(i,f) for f in fields if f != 'SHAPE@']
+    fields     = ['data_type_layer','data_type_xslx','BLOCK_NAME','RefName','layer','FC','SHAPE@WKT']
+    add_Fields = [add_field(i,f) for f in fields if f != 'SHAPE@WKT']
 
     insert    = arcpy.da.InsertCursor(i,fields)
     insertion = [insert.insertRow  ([str(value[4]),str(value[3]),str(value[0]),str(value[1]),str(value[2]),str(value[5]),value[-1]])\
