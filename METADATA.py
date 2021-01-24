@@ -41,10 +41,6 @@ def Get_DWG_data(DWG_path,json_folder):
     line_path    = DWG_path + "\\" + "Polyline"
     point_path   = DWG_path + "\\" + "Point"
 
-    json_poly  = json_folder + '\\' + 'Polygon.json'
-    json_line  = json_folder + '\\' + 'Polyline.json'
-    json_point = json_folder + '\\' + 'Point.json'
-
     layer_poly  = Layer_Engine(poly_path)
     layer_line  = Layer_Engine(line_path)
     layer_point = Layer_Engine(point_path)
