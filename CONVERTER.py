@@ -195,13 +195,14 @@ def Insert_dict_error_to_layers(dict_,gdb,Type):
                 for key,value in dict_.items() if shapetype == str(value[4])]
 
 
-
 def create_layers(gdb,list_fc_type):
     arcpy.env.workspace = gdb
     temp_layer = "in_memory" + '\\' + "template"
     arcpy.CreateFeatureclass_management("in_memory","template","POINT")
     add_Fields = [add_field(temp_layer,i) for i in ['data_type','BLOCK_NAME','RefName','layer']]
     exe = [arcpy.CreateFeatureclass_management(gdb,str(value[0]),value[1],temp_layer) for value in list_fc_type]
+
+
 
 # # #  Main  # # #
 
@@ -236,7 +237,7 @@ else:
 
 print_arcpy_message(" # # #   Merge_and_query_dfs   # # #",status = 1)
 
-dict_poly  ,df_filter_poly  ,dict_poly_error,  Error_poly  = join_and_query_dfs(layer_poly,df_xlsx )
+dict_poly  ,df_filter_poly  ,dict_poly_error,  Error_poly   = join_and_query_dfs(layer_poly,df_xlsx )
 dict_line  ,df_filter_line  ,dict_line_error,  Error_line   = join_and_query_dfs(layer_line,df_xlsx )
 dict_point ,df_filter_point ,dict_point_error, Error_point  = join_and_query_dfs(layer_point,df_xlsx)
 
@@ -264,7 +265,4 @@ Insert_dict_to_layers(dict_poly,gdb)
 Insert_dict_to_layers(dict_line,gdb)
 Insert_dict_to_layers(dict_point,gdb)
 
-
 print_arcpy_message(" #      #      #       F I N S H       #      #      #",status = 1)
-
-
