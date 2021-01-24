@@ -1,17 +1,217 @@
 # -*- coding: utf-8 -*-
 
+import arcpy
 import pandas as pd
-import json
-import arcpy,os
+import uuid,json,datetime,sys,csv,os,math
 import numpy as np
+from scipy.spatial import distance_matrix
+from platform import python_version
 
-from Engine_class import Layer_Engine
-from Basic_Tools  import *
+
+class Layer_Engine():
+
+    def __init__(self,layer,columns = 'all'):
+
+        if columns == 'all':
+            columns = [str(f.name.encode('UTF-8')) for f in arcpy.ListFields(layer)]
+            columns.extend(['SHAPE@AREA'])
+            columns.extend(['SHAPE@WKT'])
+
+        self.layer           = layer
+        self.gdb             = os.path.dirname  (layer)
+        self.name            = os.path.basename (layer)
+        self.desc            = arcpy.Describe(layer)
+        self.shapetype       = ShapeType(self.desc)
+        self.oid             = str(self.desc.OIDFieldName)
+        self.len_columns     = len(columns)
+        self.data            = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns)]
+        self.df              = pd.DataFrame(data = self.data, columns = columns)
+        self.df["geom_type"] = self.shapetype
+        self.len_rows        = self.df.shape[0]
+        self.columns         = columns
 
 
-data_file = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Json_try.json"
-GDB_file  = r'C:\GIS_layers'
-path      = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis"
+def print_arcpy_message(msg,status = 1):
+    '''
+    return a message :
+    
+    print_arcpy_message('sample ... text',status = 1)
+    [info][08:59] sample...text
+    '''
+    msg = str(msg)
+    
+    if status == 1:
+        prefix = '[info]'
+        msg = prefix + str(datetime.datetime.now()) +"  "+ msg
+        # print (msg)
+        arcpy.AddMessage(msg)
+        
+    if status == 2 :
+        prefix = '[!warning!]'
+        msg = prefix + str(datetime.datetime.now()) +"  "+ msg
+        print (msg)
+        arcpy.AddWarning(msg)
+            
+    if status == 0 :
+        prefix = '[!!!err!!!]'
+        
+        msg = prefix + str(datetime.datetime.now()) +"  "+ msg
+        print (msg)
+        arcpy.AddWarning(msg)
+        msg = prefix + str(datetime.datetime.now()) +"  "+ msg
+        print (msg)
+        arcpy.AddWarning(msg)
+            
+        warning = arcpy.GetMessages(1)
+        error   = arcpy.GetMessages(2)
+        arcpy.AddWarning(warning)
+        arcpy.AddWarning(error)
+            
+    if status == 3 :
+        prefix = '[!FINISH!]'
+        msg = prefix + str(datetime.datetime.now()) + " " + msg
+        print (msg)
+        arcpy.AddWarning(msg) 
+
+def add_field(fc,field,Type = 'TEXT'):
+
+    TYPE = [i.name for i in arcpy.ListFields(fc) if i.name == field]
+    if not TYPE:
+        arcpy.AddField_management (fc, field, Type, "", "", 500)
+
+def ShapeType(desc):
+    
+    if str(desc.shapeType) == 'Point':
+        Geom_type = 'POINT'
+    elif str(desc.shapeType) == 'Polyline':
+        Geom_type = 'POLYLINE'
+    else:
+        Geom_type = 'POLYGON'
+    return Geom_type
+
+def uniq_fields_in_FDs_to_List(DFs_list,fields_list):
+
+    df_conc  = pd.concat(DFs_list)
+    df_conc  = df_conc[fields_list].values.tolist()
+    uniq_FCs = list(set(tuple(row) for row in df_conc))
+
+    return uniq_FCs
+
+def data_to_dfs(data_input):
+    
+    if data_input.endswith('.json'):
+        layer_df    = pd.read_json(data_input)
+        layer_poly  = layer_df[layer_df['geom_type'] == 'POLYGON'].reset_index()
+        layer_line  = layer_df[layer_df['geom_type'] == 'POLYLINE'].reset_index()
+        layer_point = layer_df[layer_df['geom_type'] == 'POINT'].reset_index()
+    elif data_input.endswith('.dwg'):
+        layer_poly  = Layer_Engine(data_input + "\\" + "Polygon")
+        layer_line  = Layer_Engine(data_input + "\\" + "Polyline")
+        layer_point = Layer_Engine(data_input + "\\" + "Point")
+    else:
+        print_arcpy_message("Tool Can get only DWG or Json as Input")
+
+    return layer_poly,layer_line,layer_point
+
+def read_excel_sheets(path2):
+    # combine sheets to dataframe
+    x1 = pd.ExcelFile(path2)
+    df = pd.DataFrame()
+    columns = None
+    for idx,name in enumerate(x1.sheet_names):
+        try:
+            sheet = x1.parse(name)
+            if idx == 0:
+                columns = sheet.columns
+            sheet.columns = columns
+        except:
+            print ("coudent read sheet {}".format(name))
+        df = df.append(sheet,ignore_index = True)
+            
+    return df
+
+def join_and_query_dfs(layer_,df_xlsx):
+
+    if not isinstance(layer_, pd.DataFrame):
+        layer_ = layer_.df
+
+    layer_['index1'] = layer_.index
+    # new field where BLOCK is POINT
+    df_xlsx['Geom_Type'] = np.where(df_xlsx['GEOMETRY'] == 'BLOCK','POINT',df_xlsx['GEOMETRY'])
+    # join xlsx and df on layer name
+    result               = layer_.merge(df_xlsx,how='inner',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
+    # query to get the right layer from 
+    if layer_['geom_type'][0] == 'POINT':
+        result               = result[(result["Entity"]  ==  'Insert') & ((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
+    else:
+        result               = result[((result["BLOCK_NAME"] == result["RefName"]) | (result["BLOCK_NAME"].isnull())) & (result['Geom_Type'] == result["geom_type"])]
+
+
+    result_error = layer_.loc[~layer_['index1'].isin(result['index1'])]
+    result_error  = result_error.merge(df_xlsx,how='left',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
+
+    if isinstance(layer_, pd.DataFrame):
+        result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
+        result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
+    else:
+        result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
+        result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]        
+
+    dict_        = result.T.to_dict      ('list')
+    dict_error   = result_error.T.to_dict ('list')
+
+    return dict_,result,dict_error,result_error
+
+def Create_GDB(GDB_file,GDB_name):
+    fgdb_name = GDB_file + "\\" + GDB_name + ".gdb"
+    if os.path.exists(fgdb_name):
+        GDB_name = GDB_name + "_"
+    fgdb_name = str(arcpy.CreateFileGDB_management(GDB_file, str(GDB_name), "CURRENT"))
+    return fgdb_name
+
+
+def Insert_dict_to_layers(dict_,gdb):
+    arcpy.env.workspace = gdb
+    layers              = arcpy.ListFeatureClasses()
+    for i in layers:
+        desc          = arcpy.Describe(i)
+        shapetype     = ShapeType(desc)
+        fields        = ["BLOCK_NAME","RefName","layer","data_type","SHAPE@WKT"]
+        insert        = arcpy.da.InsertCursor(i,fields)
+
+        insertion     = [insert.insertRow  ([str(value[0]),str(value[1]),str(value[2]),str(value[3]),value[8]])\
+                        for key,value in dict_.items() if str(i) == str(value[5]) if shapetype == str(value[3])]
+
+def Insert_dict_error_to_layers(dict_,gdb,Type):
+
+    i          = arcpy.CreateFeatureclass_management(gdb,Type,Type)
+    desc       = arcpy.Describe(i)
+    shapetype  = ShapeType(desc)
+    fields     = ['data_type_layer','data_type_xslx','BLOCK_NAME','RefName','layer','FC','SHAPE@WKT']
+    add_Fields = [add_field(i,f) for f in fields if f != 'SHAPE@WKT']
+
+    insert    = arcpy.da.InsertCursor(i,fields)
+    insertion = [insert.insertRow  ([str(value[4]),str(value[3]),str(value[0]),str(value[1]),str(value[2]),str(value[5]),value[-1]])\
+                for key,value in dict_.items() if shapetype == str(value[4])]
+
+
+
+def create_layers(gdb,list_fc_type):
+    arcpy.env.workspace = gdb
+    temp_layer = "in_memory" + '\\' + "template"
+    arcpy.CreateFeatureclass_management("in_memory","template","POINT")
+    add_Fields = [add_field(temp_layer,i) for i in ['data_type','BLOCK_NAME','RefName','layer']]
+    exe = [arcpy.CreateFeatureclass_management(gdb,str(value[0]),value[1],temp_layer) for value in list_fc_type]
+
+# # #  Main  # # #
+
+# data_file   = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
+# input_data  = r'C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg'
+
+data_file   = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Json_try.json"
+GDB_file    = r'C:\GIS_layers'
+path        = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis"
+input_data  = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\json_all_.json"
 
 
 print_arcpy_message(" #      #      #       S T A R T       #      #      #",status = 1)
