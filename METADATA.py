@@ -52,9 +52,10 @@ def Get_DWG_data(DWG_path,json_folder):
     df       = pd.concat([layer_poly.df,layer_line.df,layer_point.df])
     df_group = df.groupby(['Layer','geom_type']).size()
 
-    json_poly  = layer_poly.df.to_json  (json_poly)
-    json_line  = layer_line.df.to_json  (json_line)
-    json_point = layer_point.df.to_json (json_point)
+
+    json_all = json_folder + '\\' + 'json_all_.json'
+    df.reset_index(inplace=True)
+    json_    = df.to_json (json_all)
 
     return df_group
 

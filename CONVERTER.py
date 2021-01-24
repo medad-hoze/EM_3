@@ -9,40 +9,21 @@ from Engine_class import Layer_Engine
 from Basic_Tools  import *
 
 
-# xlsx = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
-# path = r"C:\GIS_layers\Vector\bad_DWG\15_11_2019\Migrash_528_2.dwg"
-# path = r'C:\GIS_layers\Vector\bad_DWG\16_9_2019\100239-28-040819(1561).dwg'
-
 data_file = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Json_try.json"
-path      = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
 GDB_file  = r'C:\GIS_layers'
-path_json = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis"
+path      = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis"
+
 
 print_arcpy_message(" #      #      #       S T A R T       #      #      #",status = 1)
 
+input_data     = path + "\\" + "json_all_.json"
 GDB_name       = os.path.basename(path).split('.')[0]
 GDB_name_error = os.path.basename(path).split('.')[0] + '_Error'
 
 
-# poly_path    = path + "\\" + "Polygon"
-# line_path    = path + "\\" + "Polyline"
-# point_path   = path + "\\" + "Point"
+print_arcpy_message(" # # #  import data (json\DWG)   # # #",status = 1)
 
-# print_arcpy_message(" # # #   Layer_Engine   # # #",status = 1)
-
-# layer_poly  = Layer_Engine(poly_path)
-# layer_line  = Layer_Engine(line_path)
-# layer_point = Layer_Engine(point_path)
-
-print_arcpy_message(" # # #  import json   # # #",status = 1)
-
-poly_path    = path_json + "\\" + "Polygon.json"
-line_path    = path_json + "\\" + "Polyline.json"
-point_path   = path_json + "\\" + "Point.json"
-
-layer_poly  = pd.read_json(poly_path)
-layer_line  = pd.read_json(line_path)
-layer_point = pd.read_json(point_path)
+layer_poly,layer_line,layer_point = data_to_dfs(input_data)
 
 print_arcpy_message(" # # #   read_excel_or_json_sheets   # # #",status = 1)
 

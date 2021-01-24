@@ -508,6 +508,25 @@ def uniq_fields_in_FDs_to_List(DFs_list,fields_list):
 
     return uniq_FCs
 
+
+def data_to_dfs(data_input):
+    
+    if data_input.endswith('.json'):
+        layer_df    = pd.read_json(data_input)
+        layer_poly  = layer_df[layer_df['geom_type'] == 'POLYGON'].reset_index()
+        layer_line  = layer_df[layer_df['geom_type'] == 'POLYLINE'].reset_index()
+        layer_point = layer_df[layer_df['geom_type'] == 'POINT'].reset_index()
+    elif data_input.endswith('.dwg'):
+        layer_poly  = Layer_Engine(data_input + "\\" + "Polygon")
+        layer_line  = Layer_Engine(data_input + "\\" + "Polyline")
+        layer_point = Layer_Engine(data_input + "\\" + "Point")
+    else:
+        print_arcpy_message("Tool Can get only DWG or Json as Input")
+
+    return layer_poly,layer_line,layer_point
+
+
+
 # def Get_Attri_blocks_to_dict(df_attri,layer_point):
 #     df_attri    = read_excel[~read_excel['LAYER.1'].isnull()]
 #     df_attri    = df_attri.set_index('LAYER.1')
