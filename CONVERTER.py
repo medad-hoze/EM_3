@@ -6,7 +6,7 @@ import uuid,json,datetime,sys,csv,os,math
 import numpy as np
 from scipy.spatial import distance_matrix
 from platform import python_version
-
+import logging
 
 class Layer_Engine():
 
@@ -223,6 +223,22 @@ GDB_name       = Get_Time()
 GDB_name_error = Get_Time() + '_Error'
 
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+formatter    = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler(GDB_file + '\\'+'CONVERTER.log')
+file_handler.setLevel(logging.ERROR)
+file_handler.setFormatter(formatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
+
+
 print_arcpy_message(" # # #  import data (json\DWG)   # # #",status = 1)
 
 layer_poly,layer_line,layer_point = data_to_dfs(input_data)
@@ -249,12 +265,14 @@ gdb       = Create_GDB(GDB_file,GDB_name)
 gdb_error = Create_GDB(GDB_file,GDB_name_error)
 
 print_arcpy_message(" # # #   Insert_erros_dict_to_layers   # # #",status = 1)
+logger.debug(" # # #   Insert_erros_dict_to_layers   # # #")
 
 Insert_dict_error_to_layers(dict_poly_error,gdb_error  ,'POLYGON')
 Insert_dict_error_to_layers(dict_line_error,gdb_error  ,'POLYLINE')  
 Insert_dict_error_to_layers(dict_point_error,gdb_error ,'POINT')
 
 print_arcpy_message(" # # #   create_layers   # # #",status = 1)
+logger.debug(" # # #   create_layers   # # #")
 
 uniq_FCs    = uniq_fields_in_FDs_to_List ([df_filter_poly,df_filter_line,df_filter_point],["FC","Geom_Type"])
 
