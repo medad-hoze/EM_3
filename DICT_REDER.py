@@ -1,7 +1,15 @@
 import pandas as pd
+import os
+
+def add_json_endwith(json_path):
+    if not os.path.basename(json_path).endswith('.json'):
+        return json_path + '.json'
 
 def read_excel_to_json(path2,out_put):
     # combine sheets to dataframe
+
+    out_put = add_json_endwith(out_put)
+
     x1 = pd.ExcelFile(path2)
     df = pd.DataFrame()
     columns = None
@@ -12,13 +20,17 @@ def read_excel_to_json(path2,out_put):
                 columns = sheet.columns
             sheet.columns = columns
         except:
-            print "coudent read sheet {}".format(name)
+            print ("coudent read sheet {}".format(name))
         df = df.append(sheet,ignore_index = True)
     
     json = df.to_json(out_put)
     return json
 
 
-path2   = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
-out_put = r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Json_try.json'
+# path2   = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
+# out_put = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Json_try.json"
+
+path2     = arcpy.GetParameterAsText(0) # input - xlsx
+out_put   = arcpy.GetParameterAsText(1) # out_put - json
+
 read_excel_to_json(path2,out_put)

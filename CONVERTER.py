@@ -135,6 +135,7 @@ def join_and_query_dfs(layer_,df_xlsx):
     if not isinstance(layer_, pd.DataFrame):
         layer_ = layer_.df
 
+    layer_ = layer_.rename({"b'Layer'": 'Layer', "b'RefName'": 'RefName',"b'Entity'":'Entity',"b'SHAPE@WKT'":'SHAPE@WKT'}, axis='columns')
     layer_['index1'] = layer_.index
     # new field where BLOCK is POINT
     df_xlsx['Geom_Type'] = np.where(df_xlsx['GEOMETRY'] == 'BLOCK','POINT',df_xlsx['GEOMETRY'])
@@ -166,7 +167,8 @@ def Create_GDB(GDB_file,GDB_name):
     fgdb_name = GDB_file + "\\" + GDB_name + ".gdb"
     if os.path.exists(fgdb_name):
         GDB_name = GDB_name + "_"
-    fgdb_name = str(arcpy.CreateFileGDB_management(GDB_file, str(GDB_name), "CURRENT"))
+
+    fgdb_name = str(arcpy.CreateFileGDB_management(GDB_file, GDB_name, "CURRENT"))
     return fgdb_name
 
 
@@ -202,24 +204,27 @@ def create_layers(gdb,list_fc_type):
     add_Fields = [add_field(temp_layer,i) for i in ['data_type','BLOCK_NAME','RefName','layer']]
     exe = [arcpy.CreateFeatureclass_management(gdb,str(value[0]),value[1],temp_layer) for value in list_fc_type]
 
-
+def Get_Time():
+    now = datetime.datetime.now()
+    return 'Time_' + str(now.hour) +'_'+ str(now.minute) + '_' + str(now.second)
 
 # # #  Main  # # #
 
-# data_file   = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\DATA_DIC_20200218-MAVAAT.xlsx"
-# input_data  = r'C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg'
+# data_file   = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Json_try.json"
+# input_data  = r'C:\GIS_layers\Vector\bad_DWG\json_all_.json'
 
-data_file   = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\Json_try.json"
-GDB_file    = r'C:\GIS_layers'
-path        = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis"
-input_data  = r"C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis\json_all_.json"
+
+input_data        = arcpy.GetParameterAsText(0) # input   - json or dwg   , Data
+data_file         = arcpy.GetParameterAsText(1) # input   - json or excel , Referance
 
 
 print_arcpy_message(" #      #      #       S T A R T       #      #      #",status = 1)
 
-input_data     = path + "\\" + "json_all_.json"
-GDB_name       = os.path.basename(path).split('.')[0]
-GDB_name_error = os.path.basename(path).split('.')[0] + '_Error'
+scriptPath     = os.path.abspath (__file__)
+
+GDB_file       = os.path.dirname (scriptPath)
+GDB_name       = Get_Time()
+GDB_name_error = Get_Time() + '_Error'
 
 
 print_arcpy_message(" # # #  import data (json\DWG)   # # #",status = 1)

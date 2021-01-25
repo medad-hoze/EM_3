@@ -11,9 +11,9 @@ class Layer_Engine():
     def __init__(self,layer,columns = 'all'):
 
         if columns == 'all':
-            columns = [str(f.name.encode('UTF-8')) for f in arcpy.ListFields(layer)]
+            columns = [f.name.encode('UTF-8') for f in arcpy.ListFields(layer)]
             columns.extend(['SHAPE@AREA'])
-            columns.extend(["SHAPE@WKT"])
+            columns.extend([b"SHAPE@WKT"])
 
         self.desc            = arcpy.Describe(layer)
         self.shapetype       = ShapeType(self.desc)
@@ -32,8 +32,13 @@ def ShapeType(desc):
         Geom_type = 'POLYGON'
     return Geom_type
 
+def add_json_endwith(json_path):
+    if not os.path.basename(json_path).endswith('.json'):
+        return json_path + '.json'
 
-def Get_DWG_data(DWG_path,json_folder):
+def Get_DWG_data(DWG_path,json_all):
+
+    json_all = add_json_endwith(json_all)
 
     GDB_name = os.path.basename(DWG_path).split('.')[0]
 
@@ -46,19 +51,20 @@ def Get_DWG_data(DWG_path,json_folder):
     layer_point = Layer_Engine(point_path)
 
     df       = pd.concat([layer_poly.df,layer_line.df,layer_point.df])
-    df_group = df.groupby(['Layer','geom_type']).size()
+    df_group = df.groupby([b'Layer','geom_type']).size()
 
-
-    json_all = json_folder + '\\' + 'json_all_.json'
     df.reset_index(inplace=True)
-    json_    = df.to_json (json_all)
+    df.to_json (json_all)
 
     return df_group
 
 
-dwg_path    = r"C:\GIS_layers\Vector\bad_DWG\19_11_2019\TOPO-2407-113.dwg"
-csv_out_put = r'C:\Users\medad\python\GIStools\Work Tools\Engine_Cad_To_Gis'
+# dwg_path   = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\TOPO-2407-113.dwg"
+# json_out   = r'C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\json_all'
 
-dict1 = Get_DWG_data(dwg_path,csv_out_put)
+dwg_path  = arcpy.GetParameterAsText(0) # input  - CAD
+json_out  = arcpy.GetParameterAsText(1) # output - Path for json
+
+dict1 = Get_DWG_data(dwg_path,json_out)
 
 print (dict1)
