@@ -151,13 +151,9 @@ def join_and_query_dfs(layer_,df_xlsx):
     result_error = layer_.loc[~layer_['index1'].isin(result['index1'])]
     result_error  = result_error.merge(df_xlsx,how='left',left_on= ['Layer','geom_type'], right_on = ['LAYER','Geom_Type'])
 
-    if isinstance(layer_, pd.DataFrame):
-        result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
-        result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
-    else:
-        result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]
-        result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@"]]        
-
+    result       = result      [["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
+    result_error = result_error[["BLOCK_NAME","RefName","Layer","Geom_Type","geom_type","FC","LAYER.1","BLOCK_NAME.1","SHAPE@WKT"]]
+     
     dict_        = result.T.to_dict      ('list')
     dict_error   = result_error.T.to_dict ('list')
 
