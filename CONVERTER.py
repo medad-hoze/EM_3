@@ -110,6 +110,7 @@ def data_to_dfs(data_input):
         layer_point = Layer_Engine(data_input + "\\" + "Point")
     else:
         print_arcpy_message("Tool Can get only DWG or Json as Input")
+        logger.exception("Tool Can get only DWG or Json as Input")
 
     return layer_poly,layer_line,layer_point
 
@@ -224,11 +225,11 @@ GDB_name_error = Get_Time() + '_Error'
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 formatter    = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 
 file_handler = logging.FileHandler(GDB_file + '\\'+'CONVERTER.log')
+file_handler.setLevel(logging.DEBUG)
 file_handler.setLevel(logging.ERROR)
 file_handler.setFormatter(formatter)
 
@@ -260,6 +261,7 @@ dict_point ,df_filter_point ,dict_point_error, Error_point  = join_and_query_dfs
 
 
 print_arcpy_message(" # # #   Create_GDB   # # #",status = 1)
+logger.debug(" # # #   Create_GDB   # # #")
 
 gdb       = Create_GDB(GDB_file,GDB_name)
 gdb_error = Create_GDB(GDB_file,GDB_name_error)
@@ -279,6 +281,7 @@ uniq_FCs    = uniq_fields_in_FDs_to_List ([df_filter_poly,df_filter_line,df_filt
 create_layers(gdb,uniq_FCs)
 
 print_arcpy_message(" # # #   Insert_dict_to_layers   # # #",status = 1)
+logger.debug(" # # #   Insert_dict_to_layers   # # #")
 
 Insert_dict_to_layers(dict_poly,gdb)
 Insert_dict_to_layers(dict_line,gdb)
