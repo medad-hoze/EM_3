@@ -208,6 +208,8 @@ def Get_Time():
 def add_endwith(json_path,endswith_):
     if not os.path.basename(json_path).endswith(endswith_):
         return json_path + endswith_
+    else:
+        return json_path
 
 def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
@@ -228,11 +230,12 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
     mf.exportToPDF(pdf_output)
 
-# # #  Main  # # #
+# # #   Main  # # #
 
 # data_file   = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Json_try.json"
 # input_data  = r'C:\GIS_layers\Vector\bad_DWG\json_all_.json'
 
+# inputs
 
 input_data        = arcpy.GetParameterAsText(0) # input   - json or dwg   , Data
 data_file         = arcpy.GetParameterAsText(1) # input   - json or excel , Referance

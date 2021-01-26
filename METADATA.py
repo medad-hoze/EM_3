@@ -35,6 +35,8 @@ def ShapeType(desc):
 def add_json_endwith(json_path):
     if not os.path.basename(json_path).endswith('.json'):
         return json_path + '.json'
+    else:
+        return json_path
 
 def Get_DWG_data(DWG_path,json_all):
 

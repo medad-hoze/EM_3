@@ -1,14 +1,16 @@
 import pandas as pd
 import os
 
-def add_json_endwith(json_path):
-    if not os.path.basename(json_path).endswith('.json'):
-        return json_path + '.json'
+def add_endwith(json_path,endswith_ = '.json'):
+    if not os.path.basename(json_path).endswith(endswith_):
+        return json_path + endswith_
+    else:
+        return json_path
 
 def read_excel_to_json(path2,out_put):
     # combine sheets to dataframe
 
-    out_put = add_json_endwith(out_put)
+    out_put = add_endwith(out_put)
 
     x1 = pd.ExcelFile(path2)
     df = pd.DataFrame()
