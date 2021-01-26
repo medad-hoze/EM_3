@@ -545,31 +545,24 @@ def mxd_pdf_making(mxd_path,gdb_path,name,gdb,folder):
         del mxd
 
 
-    else:
+def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
-        p = arcpy.mp.ArcGISProject (mxd_path)
-        p.updateConnectionProperties(gdb_path, gdb)
-        m           = p.listMaps('Map')[0]
-        
-		# remove layers that not in dataframe
-        # delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates\For_MXD.gdb' in i.dataSource)]
+    pdf_output = add_endwith(pdf_output,endswith_ = '.pdf')
 
-		# Zoom to layer
-        lyr = m.listLayers("Layers")[0]
-        lyt = p.listLayouts("Layout1")[0]
-        mf = lyt.listElements('MAPFRAME_ELEMENT',"Map Frame")[0]
-        mf.camera.setExtent(mf.getLayerExtent(lyr,False,True))
-        mf.exportToPDF(folder + '\\' + name + '.pdf')
+    p = arcpy.mp.ArcGISProject (mxd_path)
+    p.updateConnectionProperties(gdb_Tamplate, gdb_path)
 
+    # get 1 of the layers for zoom in
+    m = p.listMaps('Map')[0]
+    lyr = m.listLayers()[2]
 
-		# export to aprx
-        p.saveACopy     (folder + "\\Cheack_"+name+".aprx")
-        arcpy.AddMessage("Open MXD Copy")
-        os.startfile    (folder + "\\Cheack_"+name+".aprx")
+    delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates' in i.dataSource)]
 
+    lyt = p.listLayouts    ("Layout1")[0]
+    mf  = lyt.listElements ('MAPFRAME_ELEMENT',"Map Frame")[0]
+    mf.camera.setExtent    (mf.getLayerExtent(lyr,False,True))
 
-        del p
-
+    mf.exportToPDF(pdf_output)
 
 def Cheak_CADtoGeoDataBase(DWG,fgdb_name):	
     # checking if arcpy can make layer to Geodatabase
@@ -611,7 +604,11 @@ def add_field(fc,field,Type = 'TEXT'):
         arcpy.AddField_management (fc, field, Type, "", "", 500)
 
 
-
+def add_endwith(json_path,endswith_):
+    if not os.path.basename(json_path).endswith(endswith_):
+        return json_path + endswith_
+    else:
+        return json_path
 
 
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
@@ -634,7 +631,7 @@ for DWG in DWGS:
     if (str(python_version())) == '2.7.16':
         mxd_path   = Tamplates + '\\' + 'M1200_M1300.mxd'
     else:
-        mxd_path   = Tamplates + '\\' + 'TEMP2.aprx'
+        mxd_path   = Tamplates + '\\' + 'TEMP.aprx'
     gdb_path       = Tamplates + '\\' + 'temp.gdb'
     dwg_path       = GDB_file  + '\\' + DWG_name + '.dwg'
 
@@ -696,7 +693,7 @@ for DWG in DWGS:
     data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
 
     Create_CSV      (data_csv,csv_name)
-    # mxd_pdf_making  (mxd_path,gdb_path,DWG_name,fgdb_name,GDB_file)
+    Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
 
