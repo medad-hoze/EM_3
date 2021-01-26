@@ -614,8 +614,8 @@ def add_endwith(json_path,endswith_):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-# DWGS        = [r"C:\GIS_layers\Vector\bad_DWG\14_1_2021\50552-1.dwg"]
-DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\dimona_366A_4.dwg"]
+# DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
@@ -672,7 +672,7 @@ for DWG in DWGS:
 
     blocks   = Layer_Engine (layers_Block)
     delcar   = Layer_Engine (declaration        ,'all')
-    lines_M  = Layer_Engine (layers_M1200_M1300 ,["Layer","Entity","LyrHandle"])
+    lines_M  = Layer_Engine (layers_M1200_M1300 ,["Layer","Entity","LyrHandle","SHAPE@"])
     poly_M   = Layer_Engine (layers_Poly ,'all')
 
     blocks.Extract_shape   ()
