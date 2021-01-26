@@ -205,6 +205,29 @@ def Get_Time():
     now = datetime.datetime.now()
     return 'Time_' + str(now.hour) +'_'+ str(now.minute) + '_' + str(now.second)
 
+def add_endwith(json_path,endswith_):
+    if not os.path.basename(json_path).endswith(endswith_):
+        return json_path + endswith_
+
+def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
+
+    pdf_output = add_endwith(pdf_output,endswith_ = '.pdf')
+
+    p = arcpy.mp.ArcGISProject (mxd_path)
+    p.updateConnectionProperties(gdb_Tamplate, gdb_path)
+
+    # get 1 of the layers for zoom in
+    m = p.listMaps('Map')[0]
+    lyr = m.listLayers()[1]
+
+    delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates' in i.dataSource)]
+
+    lyt = p.listLayouts    ("Layout1")[0]
+    mf  = lyt.listElements ('MAPFRAME_ELEMENT',"Map Frame")[0]
+    mf.camera.setExtent    (mf.getLayerExtent(lyr,False,True))
+
+    mf.exportToPDF(pdf_output)
+
 # # #  Main  # # #
 
 # data_file   = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Json_try.json"
@@ -214,6 +237,10 @@ def Get_Time():
 input_data        = arcpy.GetParameterAsText(0) # input   - json or dwg   , Data
 data_file         = arcpy.GetParameterAsText(1) # input   - json or excel , Referance
 
+# Templates
+mxd_path       = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Tamplates\CONVERTOR.aprx"
+gdb_path_error = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Tamplates\CONV_Error.gdb"
+gdb_Tamplate   = r""
 
 print_arcpy_message(" #      #      #       S T A R T       #      #      #",status = 1)
 
@@ -230,8 +257,8 @@ formatter    = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 
 file_handler = logging.FileHandler(GDB_file + '\\'+'CONVERTER.log')
 file_handler.setLevel(logging.DEBUG)
-file_handler.setLevel(logging.ERROR)
 file_handler.setFormatter(formatter)
+file_handler.setLevel(logging.ERROR)
 
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
@@ -287,4 +314,9 @@ Insert_dict_to_layers(dict_poly,gdb)
 Insert_dict_to_layers(dict_line,gdb)
 Insert_dict_to_layers(dict_point,gdb)
 
+print_arcpy_message(" # # #   Create PDFs   # # #",status = 1)
+# Create_Pdfs(mxd_path,gdb_Tamplate,gdb,pdf_output)
+Create_Pdfs(mxd_path,gdb_path_error,gdb_error,GDB_file +"\\"+ GDB_name_error)
+
 print_arcpy_message(" #      #      #       F I N S H       #      #      #",status = 1)
+
