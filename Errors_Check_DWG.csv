@@ -1,0 +1,24 @@
+Error_ID,Error,Solving,Type,Hebrew_solving
+E_Version_1,coudent exctract DWG version,,Critical,"גרסת האוטוקד אינה נכונה, יש לשמור בגרסה 2004"
+E_Version_2,you saved the DWG in the wrong version ,,Critical,
+E_FC_1,Coudnt Make FeatureClassToFeatureClass_conversion for layers M1200 and M1300,"General problem, plz send to MAPI ",Critical,הכלי לא הצליח להפעיל את הפונקציה של FeatureClassToFeatureClass יש לפנות לשירות לקוחות
+E_BLOCK_1,blocks outside the M1300 area,,Critical,יש למחוק בלוקים מחוץ לאזור העבודה
+E_BLOCK_2,"blocks at coordintes 0,0",,Critical,"נא למחוק או להזיז את הבלוקים להם קואורדינטה של 0,0"
+E_BLOCK_3,"at block layers, there is bad Character in fields: ['-',' "" ','.']",,Critical,"השכבה מכילה בלוק שבאחד משמות השדות בו נמצא תו שאינו חוקי, למשל: רווח, נקודה, גרשיים, מקף עליון, קו נטוי לדוגמה: - "" /. "
+E_Decleration_1,there is more then 1 Decleration,,Critical,"למחוק את ה- decleration המיותרים, חשוב לוודא שיש ב-decleration את השדות המתאימים"
+E_Decleration_2,No Decleration found,,Critical,יש לצייר decleration בתוך מסגרת M1300
+E_Decleration_3,Decleration found to be far from M1300,,Critical,יש להזיז את ה-decleration לאזור העבודה (בתחום שכבת M1300)
+E_Decleration_4,Missing values  in decleration fields: SURVEYOR\ACCURACY_VER\ACCURACY_HOR,,Critical,"חסרים נתונים קריטים בבלוק של הצהרת המודד, יש למלא את השדות SURVEYOR\ACCURACY_VER\ACCURACY_HOR"
+E_Decleration_5,"missing critical fields in decleration: 'SURVEY_YYYY','SURVEY_MM','SURVEY_DD','FINISH_YYYY','FINISH_MM','FINISH_DD'",,Critical,"בבלוק הצרת המודד יש למלא את השדות של התאריכים לפי הפורמט הבא: 1) יום  בפורמט שני תווים, DD  למשל 01, 2) חודש בפורמט שני תווים MM למשל 08 3) ושנה בפורמט של 4 תווים YYYY למשל 2001. שמות השדות שמכלים תאריך אותם יש לבדוק הינם: 'SURVEY_YYYY','SURVEY_MM','SURVEY_DD','FINISH_YYYY','FINISH_MM','FINISH_DD'"
+E_Decleration_6,"Wrong values  in decleration fields: 'SURVEY_YYYY','SURVEY_MM','SURVEY_DD','FINISH_YYYY','FINISH_MM','FINISH_DD'",,Critical,
+E_Decleration_7, declerations have no features,,Critical,"נמצאה שכבה של declaration אבל היא ריקה, יש להוסיף בלוק של הצהרת מודד"
+E_Decleration_8,Checking if Geodatabase have more or  less then 1 item,,,"בודק אם הפיכה של  DWG ל-geodatabase  תקינה ,  יש להתייחס לפתרון כפי שמופיע ב- E_Decleration_2 ו- E_Decleration_1. במידה ו- E_Decleration_2 ו- E_Decleration_1 לא מופיעים אך E_Decleration_8 כן מופייע, יש לפנות למרכז תמיכה."
+E_1200_1,Layer M1200 is not to be found,plz check ,Critical,נא לייצר פוליגון סגור יחיד בשכבה M1200
+E_1200_2,Layer M1200 with more then 1 item,,Critical,"נא לוודא שקיים פוליגון סגור יחיד בשכבה M1200, ולמחוק את שאר הפוליגונים בשכבה זו"
+E_1200_3,Layer M1200 with bad geometry,,Critical,יש לייצר מחדש את הפוליגון עם הדגשים הבאים: 1. פוליגון סגור 2. ללא קשתות 3.ללא נקודות שיושבות אחת לשניה (מרחק של פחות מסנטימטר)
+E_1200_4,Lines Are not closed,,Critical,
+E_1300_1,Layer M1300 is not to be found,plz check ,Critical,נא לייצר פוליגון סגור יחיד בשכבה M1300
+E_1300_2,Layer M1300 with more then 1 item,,Critical,"נא לוודא שקיים פוליגון סגור יחיד בשכבה M1300, ולמחוק את שאר הפוליגונים בשכבה זו"
+E_1300_3,Layer M1300 with bad geometry,,Critical,יש לייצר מחדש את הפוליגון עם הדגשים הבאים: 1. פוליגון סגור 2. ללא קשתות 3.ללא נקודות שיושבות אחת לשניה (מרחק של פחות מסנטימטר)
+E_Curves,there Is curve in layer M1300 or M1200,,Critical,"ההפוליגון בשכבה M1300  או M1200 מכיל קשתות, יש למחוק את הקשת ולסרטט מחדש כקווים"
+E_Annotation,"there is long text in field, more then 254 Characters",,Critical,"אחד השדות מכיל מלל ארוך מהמותר, יש לקצר אותו למתחת מ-254 תווים"
