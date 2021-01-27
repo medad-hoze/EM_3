@@ -256,7 +256,7 @@ def Extract_dwg_to_layer(fgdb_name,DWF_layer,layer_name,Filter = ''):
         fc_out_line   = str(arcpy.FeatureClassToFeatureClass_conversion( DWF_layer, fgdb_name, layer_name, Filter))
         return fc_out_line
     except:
-        msg = r"Coudnt Make FeatureClassToFeatureClass_conversion for layers M1200 and M1300"
+        msg = r"Coudnt Make FeatureClassToFeatureClass_conversion for layers {}".format(layer_name)
         print_arcpy_message(msg,2)
         
 
@@ -641,11 +641,20 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
         if del_extra_report:
             os.remove(save_name)
 
+def fix_name(name):
+    conti = True
+    check_name = os.path.basename(name).split('.')[0]
+    if ' ' in check_name:
+        f = check_name.find(' ')
+        print_arcpy_message("file name: {} have spaces, No spaces in DWG name".format(check_name),2)
+        conti = False
+    return conti
+
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\dimona_366A_4.dwg"]
-# DWGS        = arcpy.GetParameterAsText(0).split(';')
+# DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\dimona_366A_4.dwg"]
+DWGS        = arcpy.GetParameterAsText(0).split(';')
 csv_errors  = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Errors_Check_DWG.csv"
 
 # # #     Preper Data    # # #
@@ -655,79 +664,81 @@ Tamplates      = folder_basic + "\\" + "Tamplates"
 GDB_file       = folder_basic + "\\" + "Temp"
 
 for DWG in DWGS:
-    print_arcpy_message (DWG,1)
-    DWG_name       = os.path.basename(DWG).split(".")[0]
-    fgdb_name      = Create_GDB      (GDB_file,DWG_name)
-    csv_name       = GDB_file  + '\\' + DWG_name +'.csv'
-    if (str(python_version())) == '2.7.16':
-        mxd_path   = Tamplates + '\\' + 'M1200_M1300.mxd'
-    else:
-        mxd_path   = Tamplates + '\\' + 'TEMP.aprx'
-    gdb_path       = Tamplates + '\\' + 'temp.gdb'
-    dwg_path       = GDB_file  + '\\' + DWG_name + '.dwg'
+    conti = fix_name(DWG)
+    if conti:
+        print_arcpy_message (DWG,1)
+        DWG_name       = os.path.basename(DWG).split(".")[0]
+        fgdb_name      = Create_GDB      (GDB_file,DWG_name)
+        csv_name       = GDB_file  + '\\' + DWG_name +'.csv'
+        if (str(python_version())) == '2.7.16':
+            mxd_path   = Tamplates + '\\' + 'M1200_M1300.mxd'
+        else:
+            mxd_path   = Tamplates + '\\' + 'TEMP.aprx'
+        gdb_path       = Tamplates + '\\' + 'temp.gdb'
+        dwg_path       = GDB_file  + '\\' + DWG_name + '.dwg'
 
-    # # #   Get M1200 and M1300 to a layer   # # #
-    Polyline                = DWG + '\\' + 'Polyline'
-    Filter                  = "\"Layer\" IN('M1200','M1300')"
-    layer_name              = 'Line_M1200_M1300'
-    layers_M1200_M1300      = Extract_dwg_to_layer   (fgdb_name,Polyline,layer_name,Filter)
-
-
-    # # #   Get all blocks and declaration   # # #
-    Point                = DWG +'\\' + 'Point'
-    layer_name2          = 'Blocks'
-    layers_Block         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2)
-
-    declaration = fgdb_name + '\\' + 'declaration'
-    arcpy.Select_analysis (layers_Block,declaration,"\"Layer\" in ('declaration','DECLARATION','Declaration')")
+        # # #   Get M1200 and M1300 to a layer   # # #
+        Polyline                = DWG + '\\' + 'Polyline'
+        Filter                  = "\"Layer\" IN('M1200','M1300')"
+        layer_name              = 'Line_M1200_M1300'
+        layers_M1200_M1300      = Extract_dwg_to_layer   (fgdb_name,Polyline,layer_name,Filter)
 
 
-    # # #   Get polygon M1200 and M1300, if not found, Create from Line   # # #
-    polygon              = DWG +'\\' + 'Polygon'
-    Filter3              = "\"Layer\" IN('M1200','M1300')"
-    layer_name3          = "Poly_M1200_M1300"
-    layers_Poly          = fgdb_name + '\\' + layer_name3
-    try:
-        arcpy.FeatureClassToFeatureClass_conversion( polygon, fgdb_name, layer_name3, Filter3)
-        print ('Create FeatureClassToFeatureClass_conversion')
-    except:
-        print ('didnt Create FeatureClassToFeatureClass_conversion, trying creating polygon from line')
-        # Create Polygon M1200
-        poly_M1200   = 'in_memory' + '\\' + 'poly_M1200'
-        Create_Polygon_From_Line         (layers_M1200_M1300 ,poly_M1200 ,"\"Layer\" = 'M1200'","'M1200'")
-        Create_Polygon_From_Line         (layers_M1200_M1300,layers_Poly ,"\"Layer\" = 'M1300'","'M1300'")
-        # Combine Polygons
-        arcpy.Append_management          (poly_M1200,layers_Poly, "NO_TEST")
+        # # #   Get all blocks and declaration   # # #
+        Point                = DWG +'\\' + 'Point'
+        layer_name2          = 'Blocks'
+        layers_Block         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2)
 
-    # # #   Reading Files   # # #
+        declaration = fgdb_name + '\\' + 'declaration'
+        arcpy.Select_analysis (layers_Block,declaration,"\"Layer\" in ('declaration','DECLARATION','Declaration')")
 
-    blocks   = Layer_Engine (layers_Block)
-    delcar   = Layer_Engine (declaration        ,'all')
-    lines_M  = Layer_Engine (layers_M1200_M1300 ,["Layer","Entity","LyrHandle","SHAPE@"])
-    poly_M   = Layer_Engine (layers_Poly ,'all')
 
-    blocks.Extract_shape   ()
-    delcar.Extract_shape   ()
-    lines_M.Extract_shape  ()
-    
+        # # #   Get polygon M1200 and M1300, if not found, Create from Line   # # #
+        polygon              = DWG +'\\' + 'Polygon'
+        Filter3              = "\"Layer\" IN('M1200','M1300')"
+        layer_name3          = "Poly_M1200_M1300"
+        layers_Poly          = fgdb_name + '\\' + layer_name3
+        try:
+            arcpy.FeatureClassToFeatureClass_conversion( polygon, fgdb_name, layer_name3, Filter3)
+            print ('Create FeatureClassToFeatureClass_conversion')
+        except:
+            print ('didnt Create FeatureClassToFeatureClass_conversion, trying creating polygon from line')
+            # Create Polygon M1200
+            poly_M1200   = 'in_memory' + '\\' + 'poly_M1200'
+            Create_Polygon_From_Line         (layers_M1200_M1300 ,poly_M1200 ,"\"Layer\" = 'M1200'","'M1200'")
+            Create_Polygon_From_Line         (layers_M1200_M1300,layers_Poly ,"\"Layer\" = 'M1300'","'M1300'")
+            # Combine Polygons
+            arcpy.Append_management          (poly_M1200,layers_Poly, "NO_TEST")
 
-    # # #  Action  # # #
+        # # #   Reading Files   # # #
 
-    cheak_version  = cheak_cad_version (DWG)
-    Create_CSV      (cheak_version,csv_name)
-    Check_decler   = cheak_declaration (delcar,lines_M)
-    check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
-    check_Lines    = Check_Lines       (lines_M)
+        blocks   = Layer_Engine (layers_Block)
+        delcar   = Layer_Engine (declaration        ,'all')
+        lines_M  = Layer_Engine (layers_M1200_M1300 ,["Layer","Entity","LyrHandle","SHAPE@"])
+        poly_M   = Layer_Engine (layers_Poly ,'all')
 
-    check_CADtoGeo   = Cheak_CADtoGeoDataBase(DWG,fgdb_name)
-    check_annotation = get_crazy_long_test (DWG)
+        blocks.Extract_shape   ()
+        delcar.Extract_shape   ()
+        lines_M.Extract_shape  ()
+        
 
-    data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
+        # # #  Action  # # #
 
-    Create_CSV             (data_csv,csv_name)
-    Creare_report_From_CSV (csv_errors,csv_name,del_extra_report = True)
+        cheak_version  = cheak_cad_version (DWG)
+        Create_CSV      (cheak_version,csv_name)
+        Check_decler   = cheak_declaration (delcar,lines_M)
+        check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
+        check_Lines    = Check_Lines       (lines_M)
 
-    Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
+        check_CADtoGeo   = Cheak_CADtoGeoDataBase(DWG,fgdb_name)
+        check_annotation = get_crazy_long_test (DWG)
+
+        data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
+
+        Create_CSV             (data_csv,csv_name)
+        Creare_report_From_CSV (csv_errors,csv_name,del_extra_report = False)
+
+        Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
 
