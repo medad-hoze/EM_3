@@ -293,18 +293,18 @@ def cheak_cad_version(DWG):
 		x     = file1.readline()[:6]
 	cheak_version = []
 	try:
-		cheak_version = [i for n,i in dictme.items() if x == n]
+		version = [i for n,i in dictme.items() if x == n]
 	except:
 		print_arcpy_message  ("coudent exctract DWG version",status = 2)
-		cheak_version.append ("coudent exctract DWG version")
+		cheak_version.append (["E_Version_1","coudent exctract DWG version"])
 	
 	bad_ver = ['AutoCAD2000','AutoCAD2013','AutoCAD2018','AutoCAD Release 14']
 	
-	if cheak_version[0] in bad_ver:
-		print_arcpy_message  ("the CAD version is {}, and is not supported".format(cheak_version[0]),status = 2)
-		cheak_version.append ("the CAD version is {}, and is not supported".format(cheak_version[0]))
+	if version[0] in bad_ver:
+		print_arcpy_message  ("the CAD version is {}, and is not supported".format(version[0]),status = 2)
+		cheak_version.append (["E_Version_2","the CAD version is {}, and is not supported".format(version[0])])
 	else:
-		print_arcpy_message("the CAD version is {}".format(cheak_version[0]),status = 1)
+		print_arcpy_message("the CAD version is {}".format(version[0]),status = 1)
 
 	return cheak_version
 
@@ -363,16 +363,16 @@ def cheak_declaration(obj_declar,obj_line):
     # check if there is declaration in file
     if obj_declar.len_rows == 0:
         print_arcpy_message ("No Declaration Found",2)
-        declaration.append  ("No Declaration Found")
+        declaration.append  ("E_Decleration_2","No Declaration Found")
     elif obj_declar.len_rows > 1:
         print_arcpy_message ("you have {} declarations, only 1 is approved".format(obj_declar.len_rows),2)
-        declaration.append  ("you have {} declarations, only 1 is approved".format(obj_declar.len_rows))
+        declaration.append  (["E_Decleration_1","you have {} declarations, only 1 is approved".format(obj_declar.len_rows)])
 
     # check if distance to line is bigger then 100,000 meters
     distance = Check_distance_data_shape(obj_declar.data_shape,obj_line.data_shape)
     if distance > 100000:
-        print_arcpy_message ("Declaration is more then 100,000m from M1300",2)
-        declaration.append  ("Declaration is more then 100,000m from M1300")
+        print_arcpy_message ("Decleration found to be far from M1300",2)
+        declaration.append  (["E_Decleration_3","Decleration found to be far from M1300"])
 
     # check if missing values in: SURVEYOR, ACCURACY_HOR , ACCURACY_VER
 
@@ -381,7 +381,7 @@ def cheak_declaration(obj_declar,obj_line):
         data = pd.to_numeric(df[field_name], errors='coerce').notnull().all()
         if not data:
             print_arcpy_message('field {} have no Value'.format(field_name),status = 2)
-            declaration.append(str(field_name) + '  no value inside')
+            declaration.append(['E_Decleration_4',str(field_name) + '  no value inside'])
         return declaration
 
     declaration = missing_digi_in_field(obj_declar.df,b"SURVEYOR")
@@ -401,29 +401,29 @@ def cheak_declaration(obj_declar,obj_line):
                 data_date = [obj_declar.Len_field(field,as_int = True) for field in field_must]
                 if data_date[0] != 4:
                         print_arcpy_message("there is {} numbers in field: SURVEY_YYYY, 4 needed".format(str(data_date[0]),status = 2))
-                        declaration.append("there is {} numbers in field: SURVEY_YYYY, 4 needed".format(data_date[0]))
+                        declaration.append(["E_Decleration_6","there is {} numbers in field: SURVEY_YYYY, 4 needed".format(data_date[0])])
                 if data_date[1] not in one_two:
                         print_arcpy_message("there is {} numbers in field: SURVEY_MM, 2 needed".format(str(data_date[1])),status = 2)
-                        declaration.append("there is {} numbers in field: SURVEY_MM, only 2 or 1 digits exepted".format(data_date[1]))
+                        declaration.append(["E_Decleration_6","there is {} numbers in field: SURVEY_MM, 2 exepted".format(data_date[1])])
                 if data_date[2] not in one_two:
                         print_arcpy_message("there is {} numbers in field: SURVEY_DD, 2 needed".format(str(data_date[2])),status = 2)
-                        declaration.append("there is {} numbers in field: SURVEY_DD, only 2 or 1 digits exepted".format(data_date[2]))
+                        declaration.append(["E_Decleration_6","there is {} numbers in field: SURVEY_DD, 2 exepted".format(data_date[2])])
                 if data_date[3] != 4:
                         print_arcpy_message("there is {} numbers in field: FINISH_YYYY, 4 needed".format(str(data_date[3])),status = 2)
-                        declaration.append("there is {} numbers in field: FINISH_YYYY, 4 needed".format(data_date[3]))
+                        declaration.append(["E_Decleration_6","there is {} numbers in field: FINISH_YYYY, 4 needed".format(data_date[3])])
                 if data_date[4] not in one_two:
                         print_arcpy_message("there is {} numbers in field: FINISH_MM, 2 needed".format(str(data_date[4])),status = 2)
-                        declaration.append("there is {} numbers in field: FINISH_MM, , only 2 or 1 digits exepted".format(data_date[4]))
+                        declaration.append(["E_Decleration_6","there is {} numbers in field: FINISH_MM, ,2  exepted".format(data_date[4])])
                 if data_date[5] not in one_two:
-                        print_arcpy_message("there is {} numbers in field: FINISH_DD, only 2 or 1 digits exepted".format(str(data_date[5])),status = 2)
-                        declaration.append("there is {} numbers in field: FINISH_DD, 2 needed".format(data_date[5]))
+                        print_arcpy_message("there is {} numbers in field: FINISH_DD, 2 exepted".format(str(data_date[5])),status = 2)
+                        declaration.append(["E_Decleration_6","there is {} numbers in field: FINISH_DD, 2 needed".format(data_date[5])])
         else:
                 print_arcpy_message("layer 'declaration' have no features",status = 2)
-                declaration.append("layer 'declaration' have no features")
+                declaration.append(["E_Decleration_7","layer 'declaration' have no features"])
     else:
             print_arcpy_message("layer 'declaration' missing fields: {}".format(''.join([i + '-' for i in missing_fields])[0:-1],status = 2))
-            declaration.append("Missing fields")
-            declaration.append(missing_fields)
+            declaration.append(["E_Decleration_5","Missing fields"])
+            declaration.append(["E_Decleration_5",missing_fields])
 
     return declaration
 
@@ -435,18 +435,20 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     cach_fields = [str(i.name) for i in arcpy.ListFields(Point) for n in i.name if n in bad_charc]
     if cach_fields:
         for letter in cach_fields:
-            print_arcpy_message ('you have bad letters in a field of the point layer, letter: {}'.format(letter),2)
-            blocks.append       ('you have bad letters in a field of the point layer, letter: {}'.format(letter))
+            print_arcpy_message ("at block layers, there is bad Character ['-',' "" ','.'], letter: {}".format(letter),2)
+            blocks.append       (["E_BLOCK_3","at block layers, there is bad Character ['-',' "" ','.'], letter: {}".format(letter)])
 
 
     # check if there is block in coordinate 0,0
     at_Zero_Zero = obj_blocks.Check_Block_0_0()
     if len(at_Zero_Zero) > 0:
         print_arcpy_message ('you have blocks at coordinates 0,0',2)
-        blocks.append       ('you have blocks at coordinates 0,0')
+        blocks.append       (["E_BLOCK_2",'you have blocks at coordinates 0,0'])
+        start = 0
         for i in at_Zero_Zero:
-            blocks.append       ('layer: {}, have blocks at coordinates 0,0'.format(i[1]))
+            blocks.append       ([str(start),'layer: {}, have blocks at coordinates 0,0'.format(i[1])])
             print_arcpy_message('block: {}'.format(str(i)),2)
+            start += 1
 
 
     # Check if there is points with distance then more 100,000m from point
@@ -455,11 +457,13 @@ def Check_Blocks (obj_blocks,Point,Line_object):
         far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],100000)  # enough chacking 1 vertex of line to know if block is to far
         far_point = far_point[['Layer','Entity','X_Y']][((far_point['X'] != 0.0) | (far_point['Y'] != 0.0)) & (far_point['Entity'] == 'Insert')].values.tolist()
         if len(far_point) > 0:
-            print_arcpy_message ('you have blocks far from AOI',2)
-            blocks.append       ('you have blocks far from AOI')
+            print_arcpy_message ('blocks outside the M1300 area',2)
+            blocks.append       (["E_BLOCK_1",'blocks outside the M1300 area'])
+            start_me = 0
             for i in far_point:
-                blocks.append       ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]))
+                blocks.append       ([str(start_me),'layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2])])
                 print_arcpy_message ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]),2)
+                start_me += 1
         
     return blocks
 
@@ -475,25 +479,29 @@ def Check_Lines(obj_lines):
         close_pnt_m1300 = obj_lines.Close_vertxs('M1300',0.1)
 
     if close_pnt_m1200:
-        print_arcpy_message('you have self-intersect vertxs at layer M1200',2)
-        lines.append       ('you have self-intersect vertxs at layer M1200')
+        print_arcpy_message('Layer M1200 with bad geometry',2)
+        lines.append       (["E_1200_3","Layer M1200 with bad geometry"])
+        start_num = 0
         for i in close_pnt_m1200:
             print_arcpy_message ('M1200 vertxs = {}'.format(str(i)),2)
-            lines.append        ('M1200 vertxs = {}'.format(str(i)))
+            lines.append        ([str(start_num),'M1200 vertxs = {}'.format(str(i))])
+            start_num +=1
 
     if close_pnt_m1300:
-        print_arcpy_message('you have self-intersect vertxs at layer M1300',2)
-        lines.append       ('you have self-intersect vertxs at layer M1300')
+        print_arcpy_message('Layer M1300 with bad geometry',2)
+        lines.append       (["E_1300_3","Layer M1300 with bad geometry"])
+        start_ = 0
         for i in close_pnt_m1300:
             print_arcpy_message  ('M1300 vertxs = {}'.format(str(i)))
-            lines.append         ('M1300 vertxs = {}'.format(str(i)))
+            lines.append         ([str(start_),'M1300 vertxs = {}'.format(str(i))])
+            start_ +=1
 
 
     # check Curves 
     obj_lines.Curves(obj_lines.layer + '_Curves')
     if obj_lines.exists_curves:
-        print_arcpy_message('You have curves in layer, plz check error layer {}'.format(obj_lines.layer + '_Curves'))
-        lines.append       ('You have curves in layer, plz check error layer {}'.format(obj_lines.layer + '_Curves'))
+        print_arcpy_message('You have curves in layer M1200 or M1300')
+        lines.append       (["E_Curves",'You have curves in layer M1200 or M1300'])
 
     # check more then 1 - M1200 or M1300
     only_1_layer = True
@@ -501,11 +509,11 @@ def Check_Lines(obj_lines):
     M1300 = obj_lines.Filter_df('Layer','M1300')
     if M1200.shape[0] > 1 or M1200.shape[0] == 0:
         print_arcpy_message("you have {} M1200,  1 is expected".format(str(M1200.shape[0])),2)
-        lines.append       ("you have {} M1200,  1 is expected".format(str(M1200.shape[0])))
+        lines.append       (["E_1200_2","you have {} M1200,  1 is expected".format(str(M1200.shape[0]))])
         only_1_layer = False
     if M1300.shape[0] > 1 or M1300.shape[0] == 0:
         print_arcpy_message("you have {} M1300,  1 is expected".format(str(M1300.shape[0])),2)
-        lines.append       ("you have {} M1300,  1 is expected".format(str(M1300.shape[0])))
+        lines.append       (["E_1300_2","you have {} M1300,  1 is expected".format(str(M1300.shape[0]))])
         only_1_layer = False
 
     # check if line are not closed
@@ -513,15 +521,18 @@ def Check_Lines(obj_lines):
         obj_lines.Shape_closed()
         if obj_lines.Not_closed:
             print_arcpy_message ('there is vertexs that are not closed',2)
-            lines.append        ('there is vertexs that are not closed')
+            lines.append        (['E_1200_4','there is vertexs that are not closed'])
+            num_ = 1
             for i in obj_lines.Not_closed:
                 print_arcpy_message ('vertx that is not closed: {}'.format(i),2)
-                lines.append        ('vertx that is not closed: {}'.format(i))
+                lines.append        ([str(num_),'vertx that is not closed: {}'.format(i)])
+                num_ += 1
 
     return lines
 
 def Create_CSV(data,csv_name):
-    df        = pd.DataFrame(data)
+    df        = pd.DataFrame(data,columns = ["Error Key", "Error"])
+    df = df.set_index("Error Key")
     df.to_csv(csv_name)
 
 
@@ -572,7 +583,7 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 		print_arcpy_message("tool made CAD to Geodatabase" , status = 1)
 	except:
 		print_arcpy_message("tool didnt made CAD to Geodatabase" , status = 0)
-		CADtoGeoDataBase.append('tool didnt made CAD to Geodatabase')
+		CADtoGeoDataBase.append(["E_FC_1",'tool didnt made CAD to Geodatabase'])
 
     # check declaration in Geodatabase
 	layer_cheacking = fgdb_name + '\\' + 'chacking\Point'
@@ -580,7 +591,7 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 	if len(decl_list) > 1 or len(decl_list) == 0:
 		massage = "layer declaration from chacking\point (Geodatabase) found {} declaration, must be 1 ".format(len(decl_list))
 		print_arcpy_message(massage, status = 2)
-		CADtoGeoDataBase.append(massage)
+		CADtoGeoDataBase.append(["E_Decleration_8",massage])
 
 	return CADtoGeoDataBase
 
@@ -591,7 +602,7 @@ def get_crazy_long_test(DWG):
 		for i in x:
 			if (len(i[1]) > 254) or (len(i[2]) > 254) or (len(i[3]) > 254):
 				print_arcpy_message("{} is with more then 254 characters, plz notice".format(str(i[0])),status = 2)
-				long_prob.append   ("{} is with more then 254 characters".format(i[0]))
+				long_prob.append   (["E_Annotation","{} is with more then 254 characters".format(i[0])])
 				
 		return long_prob
 
@@ -611,11 +622,31 @@ def add_endwith(json_path,endswith_):
         return json_path
 
 
+def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
+    if not path == '' or path_result == '':
+        save_name   = path_result
+        path        = pd.read_csv(path,encoding="ISO-8859-8")
+        path        = path.set_index("Error_ID")
+
+        path_result = pd.read_csv(path_result,encoding="ISO-8859-8")
+        path_result = path_result.set_index("Error Key")
+        path_result = path_result.drop(['Error'], axis=1)
+
+        result      = pd.concat([path, path_result], axis=1, join="inner")
+        path,name   = os.path.split(save_name)
+        new_csv     = path + '\\' + name.split('.')[0] + '_report.csv'
+
+        result.to_csv(new_csv,encoding="ISO-8859-8")
+
+        if del_extra_report:
+            os.remove(save_name)
+
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
 DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\dimona_366A_4.dwg"]
 # DWGS        = arcpy.GetParameterAsText(0).split(';')
+csv_errors  = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Errors_Check_DWG.csv"
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
@@ -683,6 +714,7 @@ for DWG in DWGS:
     # # #  Action  # # #
 
     cheak_version  = cheak_cad_version (DWG)
+    Create_CSV      (cheak_version,csv_name)
     Check_decler   = cheak_declaration (delcar,lines_M)
     check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
     check_Lines    = Check_Lines       (lines_M)
@@ -692,7 +724,9 @@ for DWG in DWGS:
 
     data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
 
-    Create_CSV      (data_csv,csv_name)
+    Create_CSV             (data_csv,csv_name)
+    Creare_report_From_CSV (csv_errors,csv_name,del_extra_report = True)
+
     Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
