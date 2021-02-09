@@ -5,6 +5,9 @@ E_FC_1,Coudnt Make FeatureClassToFeatureClass_conversion for layers M1200 and M1
 E_BLOCK_1,blocks outside the M1300 area,,Critical,יש למחוק בלוקים מחוץ לאזור העבודה
 E_BLOCK_2,"blocks at coordintes 0,0",,Critical,"נא למחוק או להזיז את הבלוקים להם קואורדינטה של 0,0"
 E_BLOCK_3,"at block layers, there is bad Character in fields: ['-',' "" ','.']",,Critical,"השכבה מכילה בלוק שבאחד משמות השדות בו נמצא תו שאינו חוקי, למשל: רווח, נקודה, גרשיים, מקף עליון, קו נטוי לדוגמה: - "" /. "
+E_BLOCK_4,there is more then 1 feature in Block: DEC_AREA_TBL,,Critical,יש למצוא את DEC_AREA_TBL ולשנות את הגוש והחלקה לערכים מספריים בלבד
+E_BLOCK_5,No Features Found in  Block: DEC_AREA_TBL,,,יש לבנות שכבה בשם DEC_AREA_TBL ולהזין ערכים מספריים בשדה הגושים והחלקות
+E_BLOCK_6,More then 1 DEC_AREA_TBL has Found,,,"יש להשאיר רק שכבה אחת של DEC_AREA_TBL, למחוק את כל המיותרות"
 E_Decleration_1,there is more then 1 Decleration,,Critical,"למחוק את ה- decleration המיותרים, חשוב לוודא שיש ב-decleration את השדות המתאימים"
 E_Decleration_2,No Decleration found,,Critical,יש לצייר decleration בתוך מסגרת M1300
 E_Decleration_3,Decleration found to be far from M1300,,Critical,יש להזיז את ה-decleration לאזור העבודה (בתחום שכבת M1300)

@@ -464,7 +464,25 @@ def Check_Blocks (obj_blocks,Point,Line_object):
                 blocks.append       ([str(start_me),'layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2])])
                 print_arcpy_message ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]),2)
                 start_me += 1
-        
+
+
+    # Check DEC_AREA_TBL item in point layer
+    new_df   = obj_blocks.Filter_df(b"Layer","DEC_AREA_TBL")
+    len_rows = new_df.shape[0]
+    if len_rows > 1:
+        print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
+        blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
+    if len_rows > 0:
+        dict_   = new_df[[b'Layer',b'GUSH',b'PARCEL','SHAPE@']].T.to_dict()
+        GP_list = [v2 for k,v in dict_.items() for k2,v2 in v.items() if k2 == b'GUSH' or k2 == b'PARCEL']
+        bad_chr = [i for i in GP_list if isinstance(i,str) if not i.isdigit()]
+        if bad_chr:
+            print_arcpy_message ('at feature DEC_AREA_TBL, There is letters in gush or parcels fields: {}, only numbers allowed'.format(str(bad_chr)),2)
+            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(bad_chr))])      
+    else:
+        print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
+        blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
+
     return blocks
 
 def Check_Lines(obj_lines):
@@ -653,8 +671,8 @@ def fix_name(name):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-# DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\dimona_366A_4.dwg"]
-DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\TEST_2004.dwg"]
+# DWGS        = arcpy.GetParameterAsText(0).split(';')
 csv_errors  = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Errors_Check_DWG.csv"
 
 # # #     Preper Data    # # #
