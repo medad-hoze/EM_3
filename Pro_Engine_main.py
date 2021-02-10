@@ -473,21 +473,23 @@ def Check_Blocks (obj_blocks,Point,Line_object):
         print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
         blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
     if len_rows > 0:
-        dict_   = new_df[[b'Layer',b'GUSH',b'PARCEL','SHAPE@']].T.to_dict()
-        GP_list = [v2 for k,v in dict_.items() for k2,v2 in v.items() if k2 == b'GUSH' or k2 == b'PARCEL']
-        bad_chr = [i for i in GP_list if isinstance(i,str) if not i.isdigit()]
-        if bad_chr:
-            print_arcpy_message ('at feature DEC_AREA_TBL, There is letters in gush or parcels fields: {}, only numbers allowed'.format(str(bad_chr)),2)
-            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(bad_chr))])      
+        Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
+        parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
+        if Gush_not_int:
+            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
+            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
+        if parc_not_int:
+            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in parcel field: {}, only numbers allowed'.format(str(parc_not_int)),2)
+            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(parc_not_int))])    
     else:
         print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
         blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
 
     return blocks
 
-def Check_Lines(obj_lines):
+def Check_Lines(obj_lines,fgdb_name):
 
-    lines = []
+    lines,geom_list                 = [],[]
     close_pnt_m1300,close_pnt_m1200 = False,False
 
     # check if there is self intersect of vertxs
@@ -503,6 +505,7 @@ def Check_Lines(obj_lines):
         for i in close_pnt_m1200:
             print_arcpy_message ('M1200 vertxs = {}'.format(str(i)),2)
             lines.append        ([str(start_num),'M1200 vertxs = {}'.format(str(i))])
+            geom_list.append    (['M1200',i[1][0],i[1][1]])
             start_num +=1
 
     if close_pnt_m1300:
@@ -512,6 +515,7 @@ def Check_Lines(obj_lines):
         for i in close_pnt_m1300:
             print_arcpy_message  ('M1300 vertxs = {}'.format(str(i)))
             lines.append         ([str(start_),'M1300 vertxs = {}'.format(str(i))])
+            geom_list.append     (['M1300',i[1][0],i[1][1]])
             start_ +=1
 
 
@@ -544,7 +548,15 @@ def Check_Lines(obj_lines):
             for i in obj_lines.Not_closed:
                 print_arcpy_message ('vertx that is not closed: {}'.format(i),2)
                 lines.append        ([str(num_),'vertx that is not closed: {}'.format(i)])
+                geom_list.append    (['M1200\M1300',i.split('_')[0],i.split('_')[1]])
                 num_ += 1
+
+    if geom_list:
+        geom_prob  = fgdb_name + '\\' + 'Geom_prob'
+        arcpy.CreateFeatureclass_management (fgdb_name,'Geom_prob','POINT')
+        add_field                           (geom_prob,'Layer','TEXT')
+        insert    = arcpy.da.InsertCursor   (geom_prob,['Layer','SHAPE@'])
+        insertion = [insert.insertRow       ([value[0],arcpy.Point(value[1],value[2])]) for value in geom_list]
 
     return lines
 
@@ -583,7 +595,7 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
     # get 1 of the layers for zoom in
     m = p.listMaps('Map')[0]
-    lyr = m.listLayers()[2]
+    lyr = m.listLayers()[3]
 
     delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates' in i.dataSource)]
 
@@ -671,15 +683,15 @@ def fix_name(name):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\TEST_2004.dwg"]
-# DWGS        = arcpy.GetParameterAsText(0).split(';')
-csv_errors  = r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Errors_Check_DWG.csv"
+# DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\CAD\20_1_2020\18003-8.dwg"]
+DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
 folder_basic   = os.path.dirname (scriptPath)
 Tamplates      = folder_basic + "\\" + "Tamplates"
 GDB_file       = folder_basic + "\\" + "Temp"
+csv_errors     = Tamplates    + "\\" + "Errors_Check_DWG.csv"
 
 for DWG in DWGS:
     conti = fix_name(DWG)
@@ -746,7 +758,7 @@ for DWG in DWGS:
         Create_CSV      (cheak_version,csv_name)
         Check_decler   = cheak_declaration (delcar,lines_M)
         check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
-        check_Lines    = Check_Lines       (lines_M)
+        check_Lines    = Check_Lines       (lines_M,fgdb_name)
 
         check_CADtoGeo   = Cheak_CADtoGeoDataBase(DWG,fgdb_name)
         check_annotation = get_crazy_long_test (DWG)
@@ -759,8 +771,3 @@ for DWG in DWGS:
         Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
-
-
-
-
-
