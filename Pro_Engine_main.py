@@ -475,6 +475,9 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     if len_rows > 0:
         Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
         parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
+
+        del_char_if_in_list(Gush_not_int,'/')
+        
         if Gush_not_int:
             print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
             blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
@@ -637,8 +640,6 @@ def get_crazy_long_test(DWG):
 		return long_prob
 
 
-
-
 def add_field(fc,field,Type = 'TEXT'):
     TYPE = [i.name for i in arcpy.ListFields(fc) if i.name == field]
     if not TYPE:
@@ -680,11 +681,14 @@ def fix_name(name):
         conti = False
     return conti
 
+def del_char_if_in_list(list_,char):
+    exe = [list_.remove(i) for i in list_ if char in i if len(i) > 1]
+
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-# DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\CAD\20_1_2020\18003-8.dwg"]
-DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\CAD\20_1_2020\18003-8.dwg"]
+# DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
@@ -751,7 +755,6 @@ for DWG in DWGS:
         delcar.Extract_shape   ()
         lines_M.Extract_shape  ()
         
-
         # # #  Action  # # #
 
         cheak_version  = cheak_cad_version (DWG)
@@ -771,3 +774,8 @@ for DWG in DWGS:
         Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
+
+
+
+
+
