@@ -3,7 +3,7 @@
 import arcpy,math
 import pandas as pd
 import numpy as np
-import uuid,json,datetime,sys,csv,os
+import json,datetime,os
 from scipy.spatial import distance_matrix
 from platform import python_version
 arcpy.env.overwriteOutPut = True
@@ -636,6 +636,12 @@ def get_crazy_long_test(DWG):
 			if (len(i[1]) > 254) or (len(i[2]) > 254) or (len(i[3]) > 254):
 				print_arcpy_message("{} is with more then 254 characters, plz notice".format(str(i[0])),status = 2)
 				long_prob.append   (["E_Annotation","{} is with more then 254 characters".format(i[0])])
+
+		mtext = [i[0] for i in x for n in i if n.upper() == 'MTEXT']
+		if mtext:
+			mtext_layers = ','.join([i for i in set(mtext)])
+			print_arcpy_message("There is MText in layers: {}, no Mtext is allowed".format(mtext_layers),2)
+			long_prob.append   (["E_Annotation_2","There is MText in layers: {}, no Mtext is allowed".format(mtext_layers)])
 				
 		return long_prob
 
@@ -687,7 +693,7 @@ def del_char_if_in_list(list_,char):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\CAD\20_1_2020\18003-8.dwg"]
+DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\11723-RZ.dwg"]
 # DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
