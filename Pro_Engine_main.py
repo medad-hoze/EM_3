@@ -40,18 +40,18 @@ class Layer_Engine():
         self.df['count'] = self.df.groupby(field)[field].transform('count')
 
     def Extract_shape(self):
-        
-        if self.shapetype != 'POINT':
-            columns_shape            = [self.oid,'X','Y','Layer','Area','SHAPE']
-            self.data_shape          = [[i[1],j.X,j.Y,i[2],i[3],i[0]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) for n in i[0] for j in n if j]
-            self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
-            self.df_shape['index1']  = self.df_shape.index
-            self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
-        else:
-            columns_shape            = [self.oid,'Layer','Entity','LyrHandle','X','Y']
-            self.data_shape          = [[i[1],i[2],i[3],i[4],i[0].labelPoint.X,i[0].labelPoint.Y] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,"Layer","Entity","LyrHandle"]) if i[0]]
-            self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
-            self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
+        if self.len_rows > 0:
+            if self.shapetype != 'POINT':
+                columns_shape            = [self.oid,'X','Y','Layer','Area','SHAPE']
+                self.data_shape          = [[i[1],j.X,j.Y,i[2],i[3],i[0]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) for n in i[0] for j in n if j]
+                self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
+                self.df_shape['index1']  = self.df_shape.index
+                self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
+            else:
+                columns_shape            = [self.oid,'Layer','Entity','LyrHandle','X','Y']
+                self.data_shape          = [[i[1],i[2],i[3],i[4],i[0].labelPoint.X,i[0].labelPoint.Y] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,"Layer","Entity","LyrHandle"]) if i[0]]
+                self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
+                self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
 
     def Filter_point_by_max_distance(self,X_Y,distance):
 
@@ -363,7 +363,8 @@ def cheak_declaration(obj_declar,obj_line):
     # check if there is declaration in file
     if obj_declar.len_rows == 0:
         print_arcpy_message ("No Declaration Found",2)
-        declaration.append  ("E_Decleration_2","No Declaration Found")
+        declaration.append  (["E_Decleration_2","No Declaration Found"])
+        return declaration
     elif obj_declar.len_rows > 1:
         print_arcpy_message ("you have {} declarations, only 1 is approved".format(obj_declar.len_rows),2)
         declaration.append  (["E_Decleration_1","you have {} declarations, only 1 is approved".format(obj_declar.len_rows)])
@@ -693,8 +694,8 @@ def del_char_if_in_list(list_,char):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-# DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\11723-RZ.dwg"]
-DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\14277-n.dwg"]
+# DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
