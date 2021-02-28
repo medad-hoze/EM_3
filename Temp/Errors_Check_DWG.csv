@@ -25,3 +25,4 @@ E_1300_2,Layer M1300 with more then 1 item,,Critical,"נא לוודא שקיים פוליגון סגו
 E_1300_3,Layer M1300 with bad geometry,,Critical,יש לייצר מחדש את הפוליגון עם הדגשים הבאים: 1. פוליגון סגור 2. ללא קשתות 3.ללא נקודות שיושבות אחת לשניה (מרחק של פחות מסנטימטר)
 E_Curves,there Is curve in layer M1300 or M1200,,Critical,"ההפוליגון בשכבה M1300  או M1200 מכיל קשתות, יש למחוק את הקשת ולסרטט מחדש כקווים"
 E_Annotation,"there is long text in field, more then 254 Characters",,Critical,"אחד השדות מכיל מלל ארוך מהמותר, יש לקצר אותו למתחת מ-254 תווים"
+E_Annotation_2,"There is MText in layers, plz change to text",,,"הקובץ מכיל ישות מסוג MTEXT, נא למחוק אותה ולהחליפה בTEXT מסוג רגיל"
