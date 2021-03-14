@@ -694,8 +694,7 @@ def del_char_if_in_list(list_,char):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\14277-n.dwg"]
-# DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
