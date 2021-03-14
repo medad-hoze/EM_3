@@ -432,12 +432,16 @@ def cheak_declaration(obj_declar,obj_line):
 def Check_Blocks (obj_blocks,Point,Line_object):
     
     blocks     = []
+    bad_blocks = []
     bad_charc     = ['-','"','.']
     cach_fields = [str(i.name) for i in arcpy.ListFields(Point) for n in i.name if n in bad_charc]
     if cach_fields:
-        for letter in cach_fields:
-            print_arcpy_message ("at block layers, there is bad Character ['-',' "" ','.'], letter: {}".format(letter),2)
-            blocks.append       (["E_BLOCK_3","at block layers, there is bad Character ['-',' "" ','.'], letter: {}".format(letter)])
+        cach_fields.insert(0,'Layer')
+        bad_blocks.append(', '.join([i for i in list(set([str(row[0]) for row in arcpy.da.SearchCursor(Point,cach_fields) for n in row[1:] if n]))]))
+
+        if cach_fields:
+            print_arcpy_message ("at blocks: {}, there is bad Character ['-',' "" ','.'], letter: {}".format(bad_blocks[0],cach_fields[1:]),2)
+            blocks.append       (["E_BLOCK_3","at blocks: {}, there is bad Character ['-',' "" ','.'], letter: {}".format(bad_blocks[0],cach_fields[1:])])
 
 
     # check if there is block in coordinate 0,0
@@ -468,26 +472,26 @@ def Check_Blocks (obj_blocks,Point,Line_object):
 
 
     # Check DEC_AREA_TBL item in point layer
-    new_df   = obj_blocks.Filter_df(b"Layer","DEC_AREA_TBL")
-    len_rows = new_df.shape[0]
-    if len_rows > 1:
-        print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
-        blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
-    if len_rows > 0:
-        Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
-        parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
+    # new_df   = obj_blocks.Filter_df(b"Layer","DEC_AREA_TBL")
+    # len_rows = new_df.shape[0]
+    # if len_rows > 1:
+    #     print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
+    #     blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
+    # if len_rows > 0:
+    #     Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
+    #     parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
 
-        del_char_if_in_list(Gush_not_int,'/')
+    #     del_char_if_in_list(Gush_not_int,'/')
         
-        if Gush_not_int:
-            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
-            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
-        if parc_not_int:
-            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in parcel field: {}, only numbers allowed'.format(str(parc_not_int)),2)
-            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(parc_not_int))])    
-    else:
-        print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
-        blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
+    #     if Gush_not_int:
+    #         print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
+    #         blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
+    #     if parc_not_int:
+    #         print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in parcel field: {}, only numbers allowed'.format(str(parc_not_int)),2)
+    #         blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(parc_not_int))])    
+    # else:
+    #     print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
+    #     blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
 
     return blocks
 
@@ -668,9 +672,11 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
 
         path_result = pd.read_csv(path_result,encoding="ISO-8859-8")
         path_result = path_result.set_index("Error Key")
-        path_result = path_result.drop(['Error'], axis=1)
+        # path_result = path_result.drop(['Error'], axis=1)
+        path        = path.drop(['Error'], axis=1)
 
         result      = pd.concat([path, path_result], axis=1, join="inner")
+        result      = result.drop(['Solving','Type'], axis=1)
         path,name   = os.path.split(save_name)
         new_csv     = path + '\\' + name.split('.')[0] + '_report.csv'
 
@@ -694,6 +700,8 @@ def del_char_if_in_list(list_,char):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
+# DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\CAD_NEW\14277-n-2004.dwg"],\
+#                r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\19159-91.dwg"]
 DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
@@ -764,18 +772,17 @@ for DWG in DWGS:
         # # #  Action  # # #
 
         cheak_version  = cheak_cad_version (DWG)
-        Create_CSV      (cheak_version,csv_name)
         Check_decler   = cheak_declaration (delcar,lines_M)
         check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
         check_Lines    = Check_Lines       (lines_M,fgdb_name)
 
-        check_CADtoGeo   = Cheak_CADtoGeoDataBase(DWG,fgdb_name)
-        check_annotation = get_crazy_long_test (DWG)
+        check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name)
+        check_annotation = get_crazy_long_test    (DWG)
 
         data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
 
-        Create_CSV             (data_csv,csv_name)
-        Creare_report_From_CSV (csv_errors,csv_name,del_extra_report = False)
+        Create_CSV             (data_csv  ,csv_name)
+        Creare_report_From_CSV (csv_errors,csv_name)
 
         Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
