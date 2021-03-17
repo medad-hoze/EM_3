@@ -440,12 +440,15 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     bad_charc     = ['-','"','.']
     cach_fields = [str(i.name) for i in arcpy.ListFields(Point) for n in i.name if n in bad_charc]
     if cach_fields:
+        cach_fields.insert(0,'RefName')
         cach_fields.insert(0,'Layer')
-        bad_blocks.append(', '.join([i for i in list(set([str(row[0]) for row in arcpy.da.SearchCursor(Point,cach_fields) for n in row[1:] if n]))]))
+        print_arcpy_message(cach_fields)
+        bad_blocks.append('  ///  '.join([i for i in list(set(['Layer:  ' + str(row[0]) +',  Block:  '+str(row[1])  for row in arcpy.da.SearchCursor(Point,cach_fields) for n in row[2:] if n]))]))
 
-        if cach_fields:
-            print_arcpy_message ("at blocks: {}, there is bad Character ['-',' "" ','.'], letter: {}".format(bad_blocks[0],cach_fields[1:]),2)
-            blocks.append       (["E_BLOCK_3","at blocks: {}, there is bad Character ['-',' "" ','.'], letter: {}".format(bad_blocks[0],cach_fields[1:])])
+        if bad_blocks:
+            cach_fields = ','.join([i for i in cach_fields[2:]])[1:]
+            print_arcpy_message ("{}  ----->   fields: {}".format(bad_blocks[0],cach_fields),2)
+            blocks.append       (["E_BLOCK_3","{}  ----->   Fields: {}".format(bad_blocks[0],cach_fields)])
 
 
     # check if there is block in coordinate 0,0
@@ -497,7 +500,7 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     #     print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
     #     blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
 
-    # return blocks
+    return blocks
 
 def Check_Lines(obj_lines,fgdb_name):
 
