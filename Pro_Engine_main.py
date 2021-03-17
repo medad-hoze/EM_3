@@ -686,7 +686,10 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
         path        = path.drop      (['Error'], axis=1)
 
         # reading the tool csv after checking the DWG
-        path_result = pd.read_csv(path_result,encoding="ISO-8859-8")
+        try:
+            path_result = pd.read_csv(path_result,encoding="ISO-8859-8")
+        except:
+            path_result = pd.read_csv(path_result,encoding="utf-8")
         path_result = path_result.set_index("Error Key")
 
         # Create new CSV that contains the tamplate csv with hebrew and the tool csv with the correct errors
