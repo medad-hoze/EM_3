@@ -442,7 +442,6 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     if cach_fields:
         cach_fields.insert(0,'RefName')
         cach_fields.insert(0,'Layer')
-        print_arcpy_message(cach_fields)
         bad_blocks.append('  ///  '.join([i for i in list(set(['Layer:  ' + str(row[0]) +',  Block:  '+str(row[1])  for row in arcpy.da.SearchCursor(Point,cach_fields) for n in row[2:] if n]))]))
 
         if bad_blocks:
