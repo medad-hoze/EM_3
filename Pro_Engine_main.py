@@ -476,28 +476,28 @@ def Check_Blocks (obj_blocks,Point,Line_object):
 
 
     # Check DEC_AREA_TBL item in point layer
-    new_df   = obj_blocks.Filter_df(b"Layer","DEC_AREA_TBL")
-    len_rows = new_df.shape[0]
-    if len_rows > 1:
-        print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
-        blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
-    if len_rows > 0:
-        Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
-        parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
+    # new_df   = obj_blocks.Filter_df(b"Layer","DEC_AREA_TBL")
+    # len_rows = new_df.shape[0]
+    # if len_rows > 1:
+    #     print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
+    #     blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
+    # if len_rows > 0:
+    #     Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
+    #     parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
 
-        del_char_if_in_list(Gush_not_int,'/')
+    #     del_char_if_in_list(Gush_not_int,'/')
         
-        if Gush_not_int:
-            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
-            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
-        if parc_not_int:
-            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in parcel field: {}, only numbers allowed'.format(str(parc_not_int)),2)
-            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(parc_not_int))])    
-    else:
-        print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
-        blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
+    #     if Gush_not_int:
+    #         print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
+    #         blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
+    #     if parc_not_int:
+    #         print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in parcel field: {}, only numbers allowed'.format(str(parc_not_int)),2)
+    #         blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(parc_not_int))])    
+    # else:
+    #     print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
+    #     blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
 
-    return blocks
+    # return blocks
 
 def Check_Lines(obj_lines,fgdb_name):
 
