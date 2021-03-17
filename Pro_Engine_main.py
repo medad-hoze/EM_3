@@ -10,7 +10,10 @@ arcpy.env.overwriteOutPut = True
 
 
 class Layer_Engine():
-
+    '''
+    This Engine will transform the layer and its geometry to a pandas dataframe, then will
+    check the content of its values
+    '''
     def __init__(self,layer,columns = 'all'):
 
         if columns == 'all':
@@ -36,10 +39,11 @@ class Layer_Engine():
 
 
     def Count_field(self,field):
-
+        # check the count of all the features in the df
         self.df['count'] = self.df.groupby(field)[field].transform('count')
 
     def Extract_shape(self):
+        # extract the Geometry of the features
         if self.len_rows > 0:
             if self.shapetype != 'POINT':
                 columns_shape            = [self.oid,'X','Y','Layer','Area','SHAPE']
@@ -54,7 +58,7 @@ class Layer_Engine():
                 self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
 
     def Filter_point_by_max_distance(self,X_Y,distance):
-
+        # check if the distance of the df are bigger then the distance given
         if self.shapetype == 'POINT':
             if self.data_shape:
                 point_data = [[item[4],item[5]] for item in self.data_shape]
@@ -70,7 +74,7 @@ class Layer_Engine():
 
 
     def Len_field(self,field,as_int = False):
-
+        # check the len of the fields (later we will check if its bigger then 256)
         if as_int:
             len_field = self.df[field].apply(str).apply(len).astype(int)
             if len_field.shape[0] > 1:
@@ -80,6 +84,7 @@ class Layer_Engine():
             self.df[field + '_len'] = self.df[field].apply(len)
 
     def Filter_df(self,field,Value,Update_df = False):
+        # filter a colum from the df
         if Update_df:
             self.df = self.df[self.df[field] == Value]
         else:
@@ -88,7 +93,7 @@ class Layer_Engine():
 
 
     def Shape_closed(self):
-        
+        # check if the shape have a vertex that close the geometry 
         if not isinstance(self.df_shape, type(None)):
             gb_obj            = self.df_shape.groupby (by = self.oid)
             df_min            = gb_obj.agg     ({'index1' : np.min})
@@ -101,7 +106,7 @@ class Layer_Engine():
             return self.Not_closed
 
     def Close_vertxs(self,layer_name,Min_num):
-
+        # check if there is vertexs closer then the mim number given
         '''
         [INFO] - return close vrtxs but only if bigger then 0
         '''
@@ -117,7 +122,7 @@ class Layer_Engine():
             return close_pnt
 
     def Zero_Area(self):
-
+        # check if there is polygon with geometry area value if 0
         if self.shapetype == 'POLYGON':
             self.bad_area = [[i[4],i[3]] for i in self.data_shape if i[4] <= 0]
             if self.bad_area:
@@ -126,6 +131,7 @@ class Layer_Engine():
             self.bad_area = False
             
     def Curves(self,Out_put):
+        # check if there is curves in the layers, return True for curves, out put of the curves and the number of curves found
         if self.shapetype in ['POLYGON','POLYLINE']:
             curves_list = [n for i in self.data for n in i if 'describe geometry object' in str(n) if 'curve' in str(json.loads(i[-1].JSON))]
             if curves_list:
@@ -138,7 +144,7 @@ class Layer_Engine():
         return self.exists_curves
 
     def Check_Block_0_0(self):
-
+        # check if the block have 0,0 coordiates, return a list of the these cooridnates
         if self.shapetype == 'POINT':
             df2 = self.df_shape.copy()
             df2.where  ((df2["X"]==0) & (df2["Y"]==0) & (df2['Entity'] == "Insert"), inplace = True)
@@ -157,14 +163,14 @@ class Layer_Engine():
         return cach_fields
 
     def Check_Columns_names(self,fields = "SURVEY_YYYY|SURVEY_MM|SURVEY_DD|FINISH_YYYY|FINISH_MM|FINISH_DD"):
-        
+        # check the names of the fields, if a name is not found, the tool will return the name.
         exists_columns = set(self.df.columns[self.df.columns.str.contains(fields,na = False)])
         fields_in      = set(fields.split('|'))
         not_exists     = list(fields_in-exists_columns)
         return not_exists
 
     def Get_Field_Count_to_df(self,field,name_field_count = ''):
-
+        # get the count of items in the column in a new df column, if no name will be given, the field name with _num will be creadted
         if name_field_count == '':
             name_field_count = str(field) + "_num"
         count_data = self.df.groupby(field).size()
@@ -175,7 +181,7 @@ class Layer_Engine():
 
     
     def Dict(self,index_key):
-
+        # convert dataframe to dict
         dict_  = self.df.set_index(index_key)
         dict_2 = dict_.T.to_dict()
         return dict_2
@@ -183,14 +189,6 @@ class Layer_Engine():
     def create_csv(self,out_put):
         out_put = out_put + '\\' + self.shapetype + '.csv'
         self.df.to_csv(out_put,encoding ='utf-8')
-
-    def Groupby_and_count(self,field,name_field_count = ''):
-
-        if name_field_count == '':
-            name_field_count = str(field) + "_num"
-        count_data = self.df.groupby(field).size()
-        count_data = count_data.to_frame().reset_index()
-        self.df = count_data
 
 
 def print_arcpy_message(msg,status = 1):
@@ -236,13 +234,6 @@ def print_arcpy_message(msg,status = 1):
         arcpy.AddWarning(msg) 
 
 
-def add_field(fc,field,Type = 'TEXT'):
-
-    TYPE = [i.name for i in arcpy.ListFields(fc) if i.name == field]
-    if not TYPE:
-        arcpy.AddField_management (fc, field, Type, "", "", 500)
-
-
 def createFolder(dic):
 	try:
 		if not os.path.exists(dic):
@@ -252,6 +243,7 @@ def createFolder(dic):
 
 
 def Extract_dwg_to_layer(fgdb_name,DWF_layer,layer_name,Filter = ''):
+    # convert DWG to a GDB layer
     try:
         fc_out_line   = str(arcpy.FeatureClassToFeatureClass_conversion( DWF_layer, fgdb_name, layer_name, Filter))
         return fc_out_line
@@ -284,8 +276,11 @@ def Connect_rows(x,y):
 
 
 def cheak_cad_version(DWG):
-    
-	dictme={'AC1014':'AutoCAD Release 14','AC1015': 'AutoCAD2000','AC1018': 'AutoCAD2004','AC1021': 'AutoCAD2007','AC1024': 'AutoCAD2010','AC1027': 'AutoCAD2013','AC1032': 'AutoCAD2018'}
+
+    # [INFO] - check if the CAD have been saved in the right version
+    # works for arcPro and ArcGis diffrently so there is 2 methods on try and except.
+
+	dictme = {'AC1014':'AutoCAD Release 14','AC1015': 'AutoCAD2000','AC1018': 'AutoCAD2004','AC1021': 'AutoCAD2007','AC1024': 'AutoCAD2010','AC1027': 'AutoCAD2013','AC1032': 'AutoCAD2018'}
 	if (str(python_version())) == '2.7.16': # Arcmap
 		x = open(DWG,'r').read(6)
 	else:
@@ -310,6 +305,10 @@ def cheak_cad_version(DWG):
 
 
 def Create_Polygon_From_Line(polyline,Out_put,fillter,field_name):
+    '''
+    [INFO] - Create polygon from vertexs
+    return polygon
+    '''
     arcpy.CopyFeatures_management(arcpy.Polygon(arcpy.Array([arcpy.Point(j.X,j.Y) for i in arcpy.SearchCursor (polyline,fillter) for n in i.shape for j in n if j])),Out_put)
     arcpy.AddField_management        (Out_put,'Layer','TEXT')
     arcpy.CalculateField_management  (Out_put,"Layer", field_name, "PYTHON_9.3")
@@ -346,6 +345,9 @@ def Dis_2arrays_max(pts_1,pts_2,Max_num = 10000,After_zero = 2):
 
 
 def dis(x1,x2,y1,y2):
+    '''
+    [INFO] - calculte distance of 2 points
+    '''
     return math.sqrt(((x1-x2)**2) + ((y1-y2)**2))
 
 
@@ -353,7 +355,6 @@ def Check_distance_data_shape(point,line):
     x1,y1  = [point[0][4] , point[0][5]]
     x2,y2  = [line [0][1] , line [0][2]]
     return dis(x1,x2,y1,y2)
-
 
 
 def cheak_declaration(obj_declar,obj_line):
@@ -378,6 +379,9 @@ def cheak_declaration(obj_declar,obj_line):
     # check if missing values in: SURVEYOR, ACCURACY_HOR , ACCURACY_VER
 
     def missing_digi_in_field(df,field_name):
+        '''
+        [INFO] - check if all values in field are numarics, if not return en error
+        '''
         declaration = []
         data = pd.to_numeric(df[field_name], errors='coerce').notnull().all()
         if not data:
@@ -389,8 +393,7 @@ def cheak_declaration(obj_declar,obj_line):
     declaration = missing_digi_in_field(obj_declar.df,b"ACCURACY_VER")
     declaration = missing_digi_in_field(obj_declar.df,b"ACCURACY_HOR")
 
-        
-    # check if date is correct !!! why not extract from df??
+    # check the number of values in dates fields, if values are not valid, will return an error
 
     obj_declar.Filter_df(b"Entity",'Insert',True)
     list_fileds    = obj_declar.columns
@@ -431,6 +434,7 @@ def cheak_declaration(obj_declar,obj_line):
 
 def Check_Blocks (obj_blocks,Point,Line_object):
     
+    # chack if there is -,",.  in the fields names, if found, return the block name and layer of the field with the bad chracter
     blocks     = []
     bad_blocks = []
     bad_charc     = ['-','"','.']
@@ -472,26 +476,26 @@ def Check_Blocks (obj_blocks,Point,Line_object):
 
 
     # Check DEC_AREA_TBL item in point layer
-    # new_df   = obj_blocks.Filter_df(b"Layer","DEC_AREA_TBL")
-    # len_rows = new_df.shape[0]
-    # if len_rows > 1:
-    #     print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
-    #     blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
-    # if len_rows > 0:
-    #     Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
-    #     parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
+    new_df   = obj_blocks.Filter_df(b"Layer","DEC_AREA_TBL")
+    len_rows = new_df.shape[0]
+    if len_rows > 1:
+        print_arcpy_message ('There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows)),2)
+        blocks.append       (['E_BLOCK_4','There is {} features called: "DEC_AREA_TBL", only 1 excepted'.format(str(len_rows))])
+    if len_rows > 0:
+        Gush_not_int = new_df.loc[~new_df[b'GUSH'].astype(str).str.isdigit()  ,b'GUSH'].tolist()
+        parc_not_int = new_df.loc[~new_df[b'PARCEL'].astype(str).str.isdigit(),b'GUSH'].tolist()
 
-    #     del_char_if_in_list(Gush_not_int,'/')
+        del_char_if_in_list(Gush_not_int,'/')
         
-    #     if Gush_not_int:
-    #         print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
-    #         blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
-    #     if parc_not_int:
-    #         print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in parcel field: {}, only numbers allowed'.format(str(parc_not_int)),2)
-    #         blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(parc_not_int))])    
-    # else:
-    #     print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
-    #     blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
+        if Gush_not_int:
+            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in gush field: {}, only numbers allowed'.format(str(Gush_not_int)),2)
+            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(Gush_not_int))]) 
+        if parc_not_int:
+            print_arcpy_message ('at feature DEC_AREA_TBL, There is unexpected letters in parcel field: {}, only numbers allowed'.format(str(parc_not_int)),2)
+            blocks.append       (['E_BLOCK_6','leters in DEC_AREA_TBL: {}'.format(str(parc_not_int))])    
+    else:
+        print_arcpy_message('No feature DEC_AREA_TBL was Found in the point layer',2)
+        blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
 
     return blocks
 
@@ -530,7 +534,7 @@ def Check_Lines(obj_lines,fgdb_name):
     # check Curves 
     obj_lines.Curves(obj_lines.layer + '_Curves')
     if obj_lines.exists_curves:
-        print_arcpy_message('You have curves in layer M1200 or M1300')
+        print_arcpy_message('You have curves in layer M1200 or M1300',2)
         lines.append       (["E_Curves",'You have curves in layer M1200 or M1300'])
 
     # check more then 1 - M1200 or M1300
@@ -577,6 +581,8 @@ def Create_CSV(data,csv_name):
 
 def mxd_pdf_making(mxd_path,gdb_path,name,gdb,folder):
 
+    # creating pdf for arcmap
+
     if (str(python_version())) == '2.7.16':
 
         mxd = arcpy.mapping.MapDocument    (mxd_path)
@@ -595,6 +601,8 @@ def mxd_pdf_making(mxd_path,gdb_path,name,gdb,folder):
 
 
 def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
+
+    # create pdf for ArcPro
 
     pdf_output = add_endwith(pdf_output,endswith_ = '.pdf')
 
@@ -634,6 +642,7 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 	return CADtoGeoDataBase
 
 def get_crazy_long_test(DWG):
+        # check if there is more then 254 chractes in a field.
 		long_prob = []
 		anno  = DWG +'\\' + 'Annotation'
 		x = [[row[0],row[1],row[2],row[3]] for row in arcpy.da.SearchCursor (anno,['Layer','TxtMemo','Entity','RefName'])]
@@ -642,6 +651,7 @@ def get_crazy_long_test(DWG):
 				print_arcpy_message("{} is with more then 254 characters, plz notice".format(str(i[0])),status = 2)
 				long_prob.append   (["E_Annotation","{} is with more then 254 characters".format(i[0])])
 
+        # check if thhere is 'MTEXT' type in layer
 		mtext = [i[0] for i in x for n in i if n.upper() == 'MTEXT']
 		if mtext:
 			mtext_layers = ','.join([i for i in set(mtext)])
@@ -666,15 +676,17 @@ def add_endwith(json_path,endswith_):
 
 def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
     if not path == '' or path_result == '':
+        # reading the tamplate csv, and prepare before joining
         save_name   = path_result
-        path        = pd.read_csv(path,encoding="ISO-8859-8")
-        path        = path.set_index("Error_ID")
+        path        = pd.read_csv    (path,encoding="ISO-8859-8")
+        path        = path.set_index ("Error_ID")
+        path        = path.drop      (['Error'], axis=1)
 
+        # reading the tool csv after checking the DWG
         path_result = pd.read_csv(path_result,encoding="ISO-8859-8")
         path_result = path_result.set_index("Error Key")
-        # path_result = path_result.drop(['Error'], axis=1)
-        path        = path.drop(['Error'], axis=1)
 
+        # Create new CSV that contains the tamplate csv with hebrew and the tool csv with the correct errors
         result      = pd.concat([path, path_result], axis=1, join="inner")
         result      = result.drop(['Solving','Type'], axis=1)
         path,name   = os.path.split(save_name)
@@ -686,6 +698,7 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
             os.remove(save_name)
 
 def fix_name(name):
+    # make sure there is no spaces in DWG name 
     conti = True
     check_name = os.path.basename(name).split('.')[0]
     if ' ' in check_name:
@@ -700,8 +713,6 @@ def del_char_if_in_list(list_,char):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-# DWGS        = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\CAD_NEW\14277-n-2004.dwg"],\
-#                r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\19159-91.dwg"]
 DWGS        = arcpy.GetParameterAsText(0).split(';')
 
 # # #     Preper Data    # # #
