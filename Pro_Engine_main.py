@@ -364,17 +364,17 @@ def cheak_declaration(obj_declar,obj_line):
     # check if there is declaration in file
     if obj_declar.len_rows == 0:
         print_arcpy_message ("No Declaration Found",2)
-        declaration.append  (["E_Decleration_2","No Declaration Found"])
+        declaration.append  (["E_Declaration_2","No Declaration Found"])
         return declaration
     elif obj_declar.len_rows > 1:
         print_arcpy_message ("you have {} declarations, only 1 is approved".format(obj_declar.len_rows),2)
-        declaration.append  (["E_Decleration_1","you have {} declarations, only 1 is approved".format(obj_declar.len_rows)])
+        declaration.append  (["E_Declaration_1","you have {} declarations, only 1 is approved".format(obj_declar.len_rows)])
 
     # check if distance to line is bigger then 100,000 meters
     distance = Check_distance_data_shape(obj_declar.data_shape,obj_line.data_shape)
     if distance > 100000:
-        print_arcpy_message ("Decleration found to be far from M1300",2)
-        declaration.append  (["E_Decleration_3","Decleration found to be far from M1300"])
+        print_arcpy_message ("Declaration found to be far from M1300",2)
+        declaration.append  (["E_Decleration_3","Declaration found to be far from M1300"])
 
     # check if missing values in: SURVEYOR, ACCURACY_HOR , ACCURACY_VER
 
@@ -382,16 +382,23 @@ def cheak_declaration(obj_declar,obj_line):
         '''
         [INFO] - check if all values in field are numarics, if not return en error
         '''
-        declaration = []
+        declar = []
         data = pd.to_numeric(df[field_name], errors='coerce').notnull().all()
         if not data:
-            print_arcpy_message('field {} have no Value'.format(field_name),status = 2)
-            declaration.append(['E_Decleration_4',str(field_name) + '  no value inside'])
-        return declaration
+            print_arcpy_message('field {} in declaration have no Value'.format(field_name),status = 2)
+            declar.append(['E_Declaration_4','field: ' + str(field_name) + ' in declaration have no value inside'])
+            return declar
 
-    declaration = missing_digi_in_field(obj_declar.df,b"SURVEYOR")
-    declaration = missing_digi_in_field(obj_declar.df,b"ACCURACY_VER")
-    declaration = missing_digi_in_field(obj_declar.df,b"ACCURACY_HOR")
+    SURVEYOR     = missing_digi_in_field(obj_declar.df,b"SURVEYOR")
+    ACCURACY_VER = missing_digi_in_field(obj_declar.df,b"ACCURACY_VER")
+    ACCURACY_HOR = missing_digi_in_field(obj_declar.df,b"ACCURACY_HOR")
+
+    if SURVEYOR:
+        declaration.append(SURVEYOR[0])
+    if ACCURACY_VER:
+        declaration.append(ACCURACY_VER[0])
+    if ACCURACY_HOR:
+        declaration.append(ACCURACY_HOR[0])
 
     # check the number of values in dates fields, if values are not valid, will return an error
 
@@ -426,8 +433,8 @@ def cheak_declaration(obj_declar,obj_line):
                 declaration.append(["E_Decleration_7","layer 'declaration' have no features"])
     else:
             print_arcpy_message("layer 'declaration' missing fields: {}".format(''.join([i + '-' for i in missing_fields])[0:-1],status = 2))
-            declaration.append(["E_Decleration_5","Missing fields"])
-            declaration.append(["E_Decleration_5",missing_fields])
+            declaration.append(["E_Declaration_5","Missing fields"])
+            declaration.append(["E_Declaration_5",missing_fields])
 
     return declaration
 
@@ -540,30 +547,36 @@ def Check_Lines(obj_lines,fgdb_name):
         lines.append       (["E_Curves",'You have curves in layer M1200 or M1300'])
 
     # check more then 1 - M1200 or M1300
-    only_1_layer = True
     M1200 = obj_lines.Filter_df('Layer','M1200')
     M1300 = obj_lines.Filter_df('Layer','M1300')
-    if M1200.shape[0] > 1 or M1200.shape[0] == 0:
+    if M1200.shape[0] > 1:
         print_arcpy_message("you have {} M1200,  1 is expected".format(str(M1200.shape[0])),2)
         lines.append       (["E_1200_2","you have {} M1200,  1 is expected".format(str(M1200.shape[0]))])
-        only_1_layer = False
-    if M1300.shape[0] > 1 or M1300.shape[0] == 0:
+
+    if  M1200.shape[0] == 0:
+        print_arcpy_message("Layer M1200 is missing",2)
+        lines.append       (["E_1200_1","Layer M1200 is missing"])
+
+    if M1300.shape[0] > 1:
         print_arcpy_message("you have {} M1300,  1 is expected".format(str(M1300.shape[0])),2)
         lines.append       (["E_1300_2","you have {} M1300,  1 is expected".format(str(M1300.shape[0]))])
-        only_1_layer = False
+
+    if M1300.shape[0] == 0:
+        print_arcpy_message("Layer M1300 is missing",2)
+        lines.append       (["E_1300_1","Layer M1300 is missing"])
+
 
     # check if line are not closed
-    if only_1_layer:
-        obj_lines.Shape_closed()
-        if obj_lines.Not_closed:
-            print_arcpy_message ('there is vertexs that are not closed',2)
-            lines.append        (['E_1200_4','there is vertexs that are not closed'])
-            num_ = 1
-            for i in obj_lines.Not_closed:
-                print_arcpy_message ('vertx that is not closed: {}'.format(i),2)
-                lines.append        ([str(num_),'vertx that is not closed: {}'.format(i)])
-                geom_list.append    (['M1200\M1300',i.split('_')[0],i.split('_')[1]])
-                num_ += 1
+    obj_lines.Shape_closed()
+    if obj_lines.Not_closed:
+        print_arcpy_message ('there is vertexs that are not closed',2)
+        lines.append        (['E_1200_4','there is vertexs that are not closed'])
+        num_ = 1
+        for i in obj_lines.Not_closed:
+            print_arcpy_message ('vertx that is not closed: {}'.format(i),2)
+            lines.append        ([str(num_),'vertx that is not closed: {}'.format(i)])
+            geom_list.append    (['M1200\M1300',i[1],i[2]])
+            num_ += 1
 
     if geom_list:
         geom_prob  = fgdb_name + '\\' + 'Geom_prob'
@@ -639,7 +652,7 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 	if len(decl_list) > 1 or len(decl_list) == 0:
 		massage = "layer declaration from chacking\point (Geodatabase) found {} declaration, must be 1 ".format(len(decl_list))
 		print_arcpy_message(massage, status = 2)
-		CADtoGeoDataBase.append(["E_Decleration_8",massage])
+		CADtoGeoDataBase.append(["E_Declaration_8",massage])
 
 	return CADtoGeoDataBase
 
@@ -692,8 +705,7 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
         path_result = path_result.set_index("Error Key")
 
         # Create new CSV that contains the tamplate csv with hebrew and the tool csv with the correct errors
-        result      = pd.concat([path, path_result], axis=1, join="inner")
-        result      = result.drop(['Solving','Type'], axis=1)
+        result      = path.join(path_result, how="inner")
         path,name   = os.path.split(save_name)
         new_csv     = path + '\\' + name.split('.')[0] + '_report.csv'
 
