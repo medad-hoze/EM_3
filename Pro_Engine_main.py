@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# date:    28.4.2021
+# version: 2.0
+
 import arcpy,math
 import pandas as pd
 import numpy as np
@@ -383,11 +386,17 @@ def cheak_declaration(obj_declar,obj_line):
         [INFO] - check if all values in field are numarics, if not return en error
         '''
         declar = []
-        data = pd.to_numeric(df[field_name], errors='coerce').notnull().all()
-        if not data:
-            print_arcpy_message('field {} in declaration have no Value'.format(field_name),status = 2)
+        if field_name in df.columns:
+            data = pd.to_numeric(df[field_name], errors='coerce').notnull().all()
+            if not data:
+                print_arcpy_message('field {} in declaration have no Value'.format(field_name),status = 2)
+                declar.append(['E_Declaration_4','field: ' + str(field_name) + ' in declaration have no value inside'])
+        else:
             declar.append(['E_Declaration_4','field: ' + str(field_name) + ' in declaration have no value inside'])
-            return declar
+            print_arcpy_message('Field: {} Does not found'.format(field_name))
+            
+        return declar
+
 
     SURVEYOR     = missing_digi_in_field(obj_declar.df,b"SURVEYOR")
     ACCURACY_VER = missing_digi_in_field(obj_declar.df,b"ACCURACY_VER")
@@ -432,7 +441,8 @@ def cheak_declaration(obj_declar,obj_line):
                 print_arcpy_message("layer 'declaration' have no features",status = 2)
                 declaration.append(["E_Decleration_7","layer 'declaration' have no features"])
     else:
-            print_arcpy_message("layer 'declaration' missing fields: {}".format(''.join([i + '-' for i in missing_fields])[0:-1],status = 2))
+            print_arcpy_message(missing_fields)
+            print_arcpy_message("layer 'declaration' missing fields: {}".format(''.join([str(i)[1:] + '-' for i in missing_fields])[0:-1],status = 2))
             declaration.append(["E_Declaration_5","Missing fields"])
             declaration.append(["E_Declaration_5",missing_fields])
 
@@ -479,7 +489,7 @@ def Check_Blocks (obj_blocks,Point,Line_object):
             blocks.append       (["E_BLOCK_1",'blocks outside the M1300 area'])
             start_me = 0
             for i in far_point:
-                blocks.append       ([str(start_me),'layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2])])
+                blocks.append       (["E_BLOCK_1",str(start_me)+'- layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2])])
                 print_arcpy_message ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]),2)
                 start_me += 1
 
@@ -695,7 +705,6 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
         save_name   = path_result
         path        = pd.read_csv    (path,encoding="ISO-8859-8")
         path        = path.set_index ("Error_ID")
-        path        = path.drop      (['Error'], axis=1)
 
         # reading the tool csv after checking the DWG
         try:
