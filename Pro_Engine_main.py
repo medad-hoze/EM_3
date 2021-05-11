@@ -710,7 +710,6 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
     # get 1 of the layers for zoom in
     m   = p.listMaps('Map')[0]
-    print ( m.listLayers())
     lyr = m.listLayers()[4]
 
     delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates' in i.dataSource)]
