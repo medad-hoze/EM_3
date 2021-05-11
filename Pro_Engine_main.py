@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
+# for any problem: medadhoze@hotmail.com
 # date:    28.4.2021
-# version: 2.0
+# version: 2.1
 
 import arcpy,math
 import pandas as pd
@@ -65,7 +66,7 @@ class Layer_Engine():
         if self.shapetype == 'POINT':
             if self.data_shape:
                 point_data = [[item[4],item[5]] for item in self.data_shape]
-                result     = Dis_2arrays_max(point_data,X_Y,distance,15)
+                result     = Dis_2arrays_max(point_data,X_Y,distance)
                 result     = [i[0] for i in result]
                 df2        = self.df_shape.copy()
                 df2        = df2[df2['X_Y'].isin(result)]
@@ -243,6 +244,62 @@ def createFolder(dic):
 			os.makedirs(dic)
 	except OSError:
 		print ("Error Create dic")
+
+def Erase(fc,del_layer,Out_put = ''):
+
+    '''
+    fc        = השכבה הראשית- שכבה ממנה רוצים למחוק
+    del_layer = שכבה שתמחק את השכבה הראשית
+    Out_put   = שכבת הפלט, במידה ולא תוכנס שכבה, ימחק מהשכבה הראשית
+    '''
+    
+    desc = arcpy.Describe(fc)
+
+    if not Out_put == '':
+        fc = arcpy.CopyFeatures_management(fc,Out_put)
+    else:
+        Out_put = fc
+    
+    if desc.ShapeType == u'Point':
+        del_layer_temp = 'in_memory' + '\\' + 'Temp'
+        arcpy.Dissolve_management(del_layer,del_layer_temp)
+
+        if desc.ShapeType == u'Point':
+            geom_del = [row.shape for row in arcpy.SearchCursor (del_layer_temp)][0]
+            Ucursor  = arcpy.UpdateCursor (Out_put)
+            for row in Ucursor:
+                point_shape = row.shape.centroid
+                if geom_del.distanceTo(point_shape)== 0:
+                    Ucursor.deleteRow(row)
+                else:
+                    pass
+            del Ucursor
+        del del_layer_temp
+                        
+    else:
+        count_me = int(str(arcpy.GetCount_management(del_layer)))
+        if count_me > 0:
+            temp = 'in_memory' +'\\'+'_temp'
+            arcpy.Dissolve_management(del_layer,temp)
+            if int(str(arcpy.GetCount_management(temp))) > 0:
+                geom_del = [row.shape for row in arcpy.SearchCursor (temp)][0]
+                Ucursor  = arcpy.UpdateCursor (Out_put)
+                for row in Ucursor:
+                    geom_up     = row.shape
+                    new_geom    = geom_up.difference(geom_del)
+                    try:
+                        row.shape = new_geom
+                        Ucursor.updateRow (row)
+                    except:
+                        pass
+                del Ucursor
+            arcpy.Delete_management(temp)
+        else:
+            pass
+
+                    
+    arcpy.RepairGeometry_management(Out_put)
+    return Out_put
 
 
 def Extract_dwg_to_layer(fgdb_name,DWF_layer,layer_name,Filter = ''):
@@ -441,10 +498,10 @@ def cheak_declaration(obj_declar,obj_line):
                 print_arcpy_message("layer 'declaration' have no features",status = 2)
                 declaration.append(["E_Decleration_7","layer 'declaration' have no features"])
     else:
-            print_arcpy_message(missing_fields)
-            print_arcpy_message("layer 'declaration' missing fields: {}".format(''.join([str(i)[1:] + '-' for i in missing_fields])[0:-1],status = 2))
-            declaration.append(["E_Declaration_5","Missing fields"])
-            declaration.append(["E_Declaration_5",missing_fields])
+            fields_msg = ''.join([str(i)[1:] + '-' for i in missing_fields])[0:-1]
+            print_arcpy_message("layer 'declaration' missing fields: {}".format(fields_msg),status = 2)
+            declaration.append(["E_Decleration_5","Missing fields"])
+            declaration.append(["E_Decleration_5",fields_msg])
 
     return declaration
 
@@ -482,7 +539,7 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     # Check if there is points with distance then more 100,000m from point
     x_y       = [[i[1],i[2]] for i in Line_object.data_shape]
     if x_y[0]:
-        far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],100000)  # enough chacking 1 vertex of line to know if block is to far
+        far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],2000)  # enough chacking 1 vertex of line to know if block is to far
         far_point = far_point[['Layer','Entity','X_Y']][((far_point['X'] != 0.0) | (far_point['Y'] != 0.0)) & (far_point['Entity'] == 'Insert')].values.tolist()
         if len(far_point) > 0:
             print_arcpy_message ('blocks outside the M1300 area',2)
@@ -518,7 +575,7 @@ def Check_Blocks (obj_blocks,Point,Line_object):
 
     return blocks
 
-def Check_Lines(obj_lines,fgdb_name):
+def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
     lines,geom_list                 = [],[]
     close_pnt_m1300,close_pnt_m1200 = False,False
@@ -595,6 +652,23 @@ def Check_Lines(obj_lines,fgdb_name):
         insert    = arcpy.da.InsertCursor   (geom_prob,['Layer','SHAPE@'])
         insertion = [insert.insertRow       ([value[0],arcpy.Point(value[1],value[2])]) for value in geom_list]
 
+    # check if line intersect with M1300
+
+    if arcpy.Exists(poly_M1200_M1300):
+        Erase(Lines_all,poly_M1200_M1300)
+    if int(str(arcpy.GetCount_management(Lines_all))):
+        line_prob = fgdb_name + '\\' + 'Line_prob'
+        arcpy.MakeFeatureLayer_management       (obj_lines.layer,'M1300_lyr',"Layer = 'M1300'")
+        arcpy.MakeFeatureLayer_management       (Lines_all,'Lines_all_lyr',"Layer NOT IN ('M1300','M1200')")
+        arcpy.SelectLayerByLocation_management  ("Lines_all_lyr","INTERSECT","M1300_lyr",0.1)
+        arcpy.Select_analysis                   ("Lines_all_lyr",line_prob)
+        arcpy.Delete_management                 (Lines_all)
+
+        data_error = str(list(set([row[0] for row in arcpy.da.SearchCursor(line_prob,['Layer'])])))[1:-1] 
+
+        print_arcpy_message                     ("found Lines Cuting M1300 at layers: {}".format(data_error),2)
+        lines.append                            (["E_1300_4","found Lines Cuting M1300 at layers: {}".format(data_error)])
+
     return lines
 
 def Create_CSV(data,csv_name):
@@ -635,14 +709,16 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
     p.updateConnectionProperties(gdb_Tamplate, gdb_path)
 
     # get 1 of the layers for zoom in
-    m = p.listMaps('Map')[0]
-    lyr = m.listLayers()[3]
+    m   = p.listMaps('Map')[0]
+    print ( m.listLayers())
+    lyr = m.listLayers()[4]
 
     delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates' in i.dataSource)]
 
     lyt = p.listLayouts    ("Layout1")[0]
     mf  = lyt.listElements ('MAPFRAME_ELEMENT',"Map Frame")[0]
     mf.camera.setExtent    (mf.getLayerExtent(lyr,False,True))
+    mf.camera.scale = mf.camera.scale*1.8
 
     mf.exportToPDF(pdf_output)
 
@@ -739,7 +815,8 @@ def del_char_if_in_list(list_,char):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-DWGS        = arcpy.GetParameterAsText(0).split(';')
+# DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\412047b-2021.dwg"]
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
@@ -768,11 +845,16 @@ for DWG in DWGS:
         layer_name              = 'Line_M1200_M1300'
         layers_M1200_M1300      = Extract_dwg_to_layer   (fgdb_name,Polyline,layer_name,Filter)
 
+        # # # Get Line Layer # # #
+        Polyline                = DWG + '\\' + 'Polyline'
+        layer_name              = 'Lines_all'
+        Lines_all               = Extract_dwg_to_layer   (fgdb_name,Polyline,layer_name)
 
         # # #   Get all blocks and declaration   # # #
         Point                = DWG +'\\' + 'Point'
         layer_name2          = 'Blocks'
-        layers_Block         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2)
+        Filter4              = "\"Entity\" = 'Insert'"
+        layers_Block         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2,Filter4)
 
         declaration = fgdb_name + '\\' + 'declaration'
         arcpy.Select_analysis (layers_Block,declaration,"\"Layer\" in ('declaration','DECLARATION','Declaration')")
@@ -800,7 +882,7 @@ for DWG in DWGS:
         blocks   = Layer_Engine (layers_Block)
         delcar   = Layer_Engine (declaration        ,'all')
         lines_M  = Layer_Engine (layers_M1200_M1300 ,["Layer","Entity","LyrHandle","SHAPE@"])
-        poly_M   = Layer_Engine (layers_Poly ,'all')
+        poly_M   = Layer_Engine (layers_Poly        ,'all')
 
         blocks.Extract_shape   ()
         delcar.Extract_shape   ()
@@ -811,7 +893,7 @@ for DWG in DWGS:
         cheak_version  = cheak_cad_version (DWG)
         Check_decler   = cheak_declaration (delcar,lines_M)
         check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
-        check_Lines    = Check_Lines       (lines_M,fgdb_name)
+        check_Lines    = Check_Lines       (lines_M,Lines_all,layers_Poly,fgdb_name)
 
         check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name)
         check_annotation = get_crazy_long_test    (DWG)
@@ -824,8 +906,3 @@ for DWG in DWGS:
         Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
-
-
-
-
-
