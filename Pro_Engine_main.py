@@ -906,3 +906,8 @@ for DWG in DWGS:
         Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
+
+
+
+
+
