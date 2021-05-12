@@ -245,6 +245,13 @@ def createFolder(dic):
 	except OSError:
 		print ("Error Create dic")
 
+def Create_Geom_Prob(fgdb_name):
+    geom_prob  = fgdb_name + '\\' + 'Geom_prob'
+    if not arcpy.Exists(geom_prob):
+        arcpy.CreateFeatureclass_management (fgdb_name,'Geom_prob','POINT')
+        add_field                           (geom_prob,'Layer','TEXT')
+    return geom_prob
+
 def Erase(fc,del_layer,Out_put = ''):
 
     '''
@@ -506,7 +513,7 @@ def cheak_declaration(obj_declar,obj_line):
     return declaration
 
 
-def Check_Blocks (obj_blocks,Point,Line_object):
+def Check_Blocks (obj_blocks,Point,obj_poly,Line_object,fgdb_name):
     
     # chack if there is -,",.  in the fields names, if found, return the block name and layer of the field with the bad chracter
     blocks     = []
@@ -536,19 +543,37 @@ def Check_Blocks (obj_blocks,Point,Line_object):
             start += 1
 
 
-    # Check if there is points with distance then more 100,000m from point
-    x_y       = [[i[1],i[2]] for i in Line_object.data_shape]
-    if x_y[0]:
-        far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],2000)  # enough chacking 1 vertex of line to know if block is to far
-        far_point = far_point[['Layer','Entity','X_Y']][((far_point['X'] != 0.0) | (far_point['Y'] != 0.0)) & (far_point['Entity'] == 'Insert')].values.tolist()
-        if len(far_point) > 0:
+    # Check if there if blocks outside M1300
+    if arcpy.Exists(obj_poly.layer):
+        arcpy.MakeFeatureLayer_management           (obj_blocks.layer,'block_lyr')
+        arcpy.SelectLayerByLocation_management      ('block_lyr','INTERSECT',obj_poly.layer,0.01,'','INVERT')
+        data = [[i[0],i[1],str(round(i[0].centroid.X,1)) + '-' + str(round(i[0].centroid.Y,1))] for i in arcpy.da.SearchCursor ('block_lyr',['SHAPE@','Layer']) if i[0]]
+        if data:
             print_arcpy_message ('blocks outside the M1300 area',2)
             blocks.append       (["E_BLOCK_1",'blocks outside the M1300 area'])
+            Geom_prob = Create_Geom_Prob                (fgdb_name)
+            insert    = arcpy.da.InsertCursor           (Geom_prob,['Layer','SHAPE@'])
+            insertion = [insert.insertRow               (['Block layer: {}'.format(value[1]),value[0]]) for value in data]
             start_me = 0
-            for i in far_point:
-                blocks.append       (["E_BLOCK_1",str(start_me)+'- layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2])])
-                print_arcpy_message ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]),2)
+            for i in data:
+                blocks.append       (["E_BLOCK_1",str(start_me)+'- layer: {}, have coordinates at  {}'.format(i[1],i[2])])
+                print_arcpy_message ('layer: {}, have coordinates at  {}'.format(i[1],i[2]),2)
                 start_me += 1
+    else:
+        # if no M1300 Exists, checks distance from Lines M1300
+        print_arcpy_message ('Didnt find ',2)
+        x_y       = [[i[1],i[2]] for i in Line_object.data_shape]
+        if x_y[0]:
+            far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],500)  # enough chacking 1 vertex of line to know if block is to far
+            far_point = far_point[['Layer','Entity','X_Y']][((far_point['X'] != 0.0) | (far_point['Y'] != 0.0)) & (far_point['Entity'] == 'Insert')].values.tolist()
+            if len(far_point) > 0:
+                print_arcpy_message ('blocks outside the M1300 area',2)
+                blocks.append       (["E_BLOCK_1",'blocks outside the M1300 area'])
+                start_me = 0
+                for i in far_point:
+                    blocks.append       (["E_BLOCK_1",str(start_me)+'- layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2])])
+                    print_arcpy_message ('layer: {}, block name: {}, have coordinates at  {}'.format(i[0],i[1],i[2]),2)
+                    start_me += 1
 
 
     # Check DEC_AREA_TBL item in point layer
@@ -574,6 +599,9 @@ def Check_Blocks (obj_blocks,Point,Line_object):
     #     blocks.append      (['E_BLOCK_5','No feature DEC_AREA_TBL was Found in the point layer'])
 
     return blocks
+
+
+
 
 def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
@@ -646,9 +674,7 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
             num_ += 1
 
     if geom_list:
-        geom_prob  = fgdb_name + '\\' + 'Geom_prob'
-        arcpy.CreateFeatureclass_management (fgdb_name,'Geom_prob','POINT')
-        add_field                           (geom_prob,'Layer','TEXT')
+        geom_prob = Create_Geom_Prob(fgdb_name)
         insert    = arcpy.da.InsertCursor   (geom_prob,['Layer','SHAPE@'])
         insertion = [insert.insertRow       ([value[0],arcpy.Point(value[1],value[2])]) for value in geom_list]
 
@@ -814,8 +840,8 @@ def del_char_if_in_list(list_,char):
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-DWGS        = arcpy.GetParameterAsText(0).split(';')
-# DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\412047b-2021.dwg"]
+# DWGS        = arcpy.GetParameterAsText(0).split(';')
+DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\412220C-2021.dwg"]
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
@@ -891,7 +917,7 @@ for DWG in DWGS:
 
         cheak_version  = cheak_cad_version (DWG)
         Check_decler   = cheak_declaration (delcar,lines_M)
-        check_Blocks   = Check_Blocks      (blocks,Point,lines_M)
+        check_Blocks   = Check_Blocks      (blocks,Point,poly_M,lines_M,fgdb_name  )
         check_Lines    = Check_Lines       (lines_M,Lines_all,layers_Poly,fgdb_name)
 
         check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name)
