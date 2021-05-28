@@ -754,7 +754,8 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 		CADtoGeoDataBase.append(["E_FC_1",'tool didnt made CAD to Geodatabase'])
 
 	try:
-		Get_dataset_to_DWG_fix(fgdb_name + '\\' + 'chacking',os.path.dirname(fgdb_name) + '\\' + os.path.basename(DWG),DWG)
+		if 'Cheak_dwg_' not in DWG:
+		    Get_dataset_to_DWG_fix(fgdb_name + '\\' + 'chacking',os.path.dirname(fgdb_name) + '\\' +'Cheak_dwg_'+ os.path.basename(DWG),DWG)
 	except:
 		print_arcpy_message("Tool Coudnt create Fixed DWG", status = 2)
 
@@ -845,12 +846,10 @@ def Get_dataset_to_DWG_fix(dataset_path,out_dwg,dwg_source):
     dwg_ver      = '2004'
 
     line       = dataset_path + '\\' + 'Polyline'
-    polygon    = dataset_path + '\\' + 'Polygon'
     point      = dataset_path + '\\' + 'Point'
-    MultiPatch = dataset_path + '\\' + 'MultiPatch'
     Annotation = dataset_path + '\\' + 'Annotation'
 
-    list_poly_line_anno = [line,polygon,MultiPatch,Annotation]
+    list_poly_line_anno = [line,Annotation]
 
 
     exp_frozen  =  "change_to_zero            (!LyrFrzn!)"
