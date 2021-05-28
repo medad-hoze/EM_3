@@ -190,10 +190,6 @@ class Layer_Engine():
         dict_2 = dict_.T.to_dict()
         return dict_2
 
-    def create_csv(self,out_put):
-        out_put = out_put + '\\' + self.shapetype + '.csv'
-        self.df.to_csv(out_put,encoding ='utf-8')
-
 
 def print_arcpy_message(msg,status = 1):
     '''
@@ -560,8 +556,8 @@ def Check_Blocks (obj_blocks,Point,obj_poly,Line_object,fgdb_name):
                 print_arcpy_message ('layer: {}, have coordinates at  {}'.format(i[1],i[2]),2)
                 start_me += 1
     else:
-        # if no M1300 Exists, checks distance from Lines M1300
-        print_arcpy_message ('Didnt find ',2)
+        # if no poly M1300 Exists, checks distance from Lines M1300
+        print_arcpy_message ('Didnt find polygon M1300 working on lines',2)
         x_y       = [[i[1],i[2]] for i in Line_object.data_shape]
         if x_y[0]:
             far_point = obj_blocks.Filter_point_by_max_distance([x_y[0]],500)  # enough chacking 1 vertex of line to know if block is to far
@@ -757,6 +753,11 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 		print_arcpy_message("tool didnt made CAD to Geodatabase" , status = 0)
 		CADtoGeoDataBase.append(["E_FC_1",'tool didnt made CAD to Geodatabase'])
 
+	try:
+		Get_dataset_to_DWG_fix(fgdb_name + '\\' + 'chacking',os.path.dirname(fgdb_name) + '\\' + os.path.basename(DWG),DWG)
+	except:
+		print_arcpy_message("Tool Coudnt create Fixed DWG", status = 2)
+
     # check declaration in Geodatabase
 	layer_cheacking = fgdb_name + '\\' + 'chacking\Point'
 	decl_list = [row[0] for row in arcpy.da.SearchCursor(layer_cheacking,["Layer"]) if row[0] in ('declaration','DECLARATION')]
@@ -837,11 +838,67 @@ def fix_name(name):
 def del_char_if_in_list(list_,char):
     exe = [list_.remove(i) for i in list_ if char in i if len(i) > 1]
 
+
+def Get_dataset_to_DWG_fix(dataset_path,out_dwg,dwg_source):
+
+    dect_ver     = {'2000':"DWG_R2000", '2004':"DWG_R2004", '2005':"DWG_R2005", '2007':"DWG_R2007", '2010':"DWG_R2010"}
+    dwg_ver      = '2004'
+
+    line       = dataset_path + '\\' + 'Polyline'
+    polygon    = dataset_path + '\\' + 'Polygon'
+    point      = dataset_path + '\\' + 'Point'
+    MultiPatch = dataset_path + '\\' + 'MultiPatch'
+    Annotation = dataset_path + '\\' + 'Annotation'
+
+    list_poly_line_anno = [line,polygon,MultiPatch,Annotation]
+
+
+    exp_frozen  =  "change_to_zero            (!LyrFrzn!)"
+    exp_vis     =  "change_zero_to_minus      (!BlkColor!)"
+    exp_LineWt  =  "Minus_1_to_zero           (!BlkLineWt!)"
+
+    change_to_zero = """def change_to_zero(num):
+        if num == 1:
+            return 0
+        else:
+            return num"""
+
+    change_zero_to_minus = """def change_zero_to_minus(num):
+        if num == 0:
+            return -1
+        else:
+            return num"""
+
+    Minus_1_to_zero = """def Minus_1_to_zero(num):
+        if num == -1:
+            return 0
+        else:
+            return num""" 
+
+    arcpy.CalculateField_management (point,"LyrFrzn"  ,exp_frozen,"PYTHON",change_to_zero      )
+    arcpy.CalculateField_management (point,"BlkColor" ,exp_vis   ,"PYTHON",change_zero_to_minus)
+    arcpy.CalculateField_management (point,"BlkLineWt",exp_LineWt,"PYTHON",Minus_1_to_zero     )
+
+
+    for lyr in list_poly_line_anno:
+        name = os.path.basename(lyr)
+        arcpy.MakeFeatureLayer_management       (lyr,name)
+        arcpy.SelectLayerByAttribute_management (name,"ADD_TO_SELECTION","\"Entity\" = 'Insert'")
+        arcpy.DeleteFeatures_management         (name)
+
+    list_fcs = list_poly_line_anno + [point]
+    for layer in list_fcs:
+        if arcpy.Exists(out_dwg):
+            arcpy.ExportCAD_conversion(layer,dect_ver[str(dwg_ver)],out_dwg,"Ignore_Filenames_in_Tables", "APPEND_TO_EXISTING_FILES", dwg_source)
+        else:
+            arcpy.ExportCAD_conversion(layer,dect_ver[str(dwg_ver)],out_dwg,"Ignore_Filenames_in_Tables", "OVERWRITE_EXISTING_FILES", dwg_source)
+
+
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
-# DWGS        = arcpy.GetParameterAsText(0).split(';')
-DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\412220C-2021.dwg"]
+DWGS        = arcpy.GetParameterAsText(0).split(';')
+# DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Temp\150asMade.dwg"]
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
