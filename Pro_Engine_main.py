@@ -753,15 +753,6 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 		print_arcpy_message("tool didnt made CAD to Geodatabase" , status = 0)
 		CADtoGeoDataBase.append(["E_FC_1",'tool didnt made CAD to Geodatabase'])
 
-	# try:
-	# 	if 'Cheak_dwg_' not in DWG:
-            
-	# 		dataset_path = fgdb_name + '\\' + 'chacking'
-	# 		out_dwg      = os.path.dirname(fgdb_name) + '\\' +'Cheak_dwg_'+ os.path.basename(DWG)
-
-	# 		Get_dataset_to_DWG_fix(dataset_path,out_dwg,DWG)
-	# except:
-	# 	print_arcpy_message("Tool Coudnt create Fixed DWG", status = 2)
 
     # check declaration in Geodatabase
 	layer_cheacking = fgdb_name + '\\' + 'chacking\Point'
