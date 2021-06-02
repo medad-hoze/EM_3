@@ -753,11 +753,15 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 		print_arcpy_message("tool didnt made CAD to Geodatabase" , status = 0)
 		CADtoGeoDataBase.append(["E_FC_1",'tool didnt made CAD to Geodatabase'])
 
-	try:
-		if 'Cheak_dwg_' not in DWG:
-		    Get_dataset_to_DWG_fix(fgdb_name + '\\' + 'chacking',os.path.dirname(fgdb_name) + '\\' +'Cheak_dwg_'+ os.path.basename(DWG),DWG)
-	except:
-		print_arcpy_message("Tool Coudnt create Fixed DWG", status = 2)
+	# try:
+	# 	if 'Cheak_dwg_' not in DWG:
+            
+	# 		dataset_path = fgdb_name + '\\' + 'chacking'
+	# 		out_dwg      = os.path.dirname(fgdb_name) + '\\' +'Cheak_dwg_'+ os.path.basename(DWG)
+
+	# 		Get_dataset_to_DWG_fix(dataset_path,out_dwg,DWG)
+	# except:
+	# 	print_arcpy_message("Tool Coudnt create Fixed DWG", status = 2)
 
     # check declaration in Geodatabase
 	layer_cheacking = fgdb_name + '\\' + 'chacking\Point'
@@ -838,59 +842,6 @@ def fix_name(name):
 
 def del_char_if_in_list(list_,char):
     exe = [list_.remove(i) for i in list_ if char in i if len(i) > 1]
-
-
-def Get_dataset_to_DWG_fix(dataset_path,out_dwg,dwg_source):
-
-    dect_ver     = {'2000':"DWG_R2000", '2004':"DWG_R2004", '2005':"DWG_R2005", '2007':"DWG_R2007", '2010':"DWG_R2010"}
-    dwg_ver      = '2004'
-
-    line       = dataset_path + '\\' + 'Polyline'
-    point      = dataset_path + '\\' + 'Point'
-    Annotation = dataset_path + '\\' + 'Annotation'
-
-    list_poly_line_anno = [line,Annotation]
-
-
-    exp_frozen  =  "change_to_zero            (!LyrFrzn!)"
-    exp_vis     =  "change_zero_to_minus      (!BlkColor!)"
-    exp_LineWt  =  "Minus_1_to_zero           (!BlkLineWt!)"
-
-    change_to_zero = """def change_to_zero(num):
-        if num == 1:
-            return 0
-        else:
-            return num"""
-
-    change_zero_to_minus = """def change_zero_to_minus(num):
-        if num == 0:
-            return -1
-        else:
-            return num"""
-
-    Minus_1_to_zero = """def Minus_1_to_zero(num):
-        if num == -1:
-            return 0
-        else:
-            return num""" 
-
-    arcpy.CalculateField_management (point,"LyrFrzn"  ,exp_frozen,"PYTHON",change_to_zero      )
-    arcpy.CalculateField_management (point,"BlkColor" ,exp_vis   ,"PYTHON",change_zero_to_minus)
-    arcpy.CalculateField_management (point,"BlkLineWt",exp_LineWt,"PYTHON",Minus_1_to_zero     )
-
-
-    for lyr in list_poly_line_anno:
-        name = os.path.basename(lyr)
-        arcpy.MakeFeatureLayer_management       (lyr,name)
-        arcpy.SelectLayerByAttribute_management (name,"ADD_TO_SELECTION","\"Entity\" = 'Insert'")
-        arcpy.DeleteFeatures_management         (name)
-
-    list_fcs = list_poly_line_anno + [point]
-    for layer in list_fcs:
-        if arcpy.Exists(out_dwg):
-            arcpy.ExportCAD_conversion(layer,dect_ver[str(dwg_ver)],out_dwg,"Ignore_Filenames_in_Tables", "APPEND_TO_EXISTING_FILES", dwg_source)
-        else:
-            arcpy.ExportCAD_conversion(layer,dect_ver[str(dwg_ver)],out_dwg,"Ignore_Filenames_in_Tables", "OVERWRITE_EXISTING_FILES", dwg_source)
 
 
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
