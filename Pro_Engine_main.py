@@ -11,7 +11,9 @@ import json,datetime,os
 from scipy.spatial import distance_matrix
 from platform import python_version
 arcpy.env.overwriteOutPut = True
-
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.pyplot as plt
+import PyPDF2
 
 class Layer_Engine():
     '''
@@ -373,8 +375,8 @@ def Create_Polygon_From_Line(polyline,Out_put,fillter,field_name):
     return polygon
     '''
     arcpy.CopyFeatures_management(arcpy.Polygon(arcpy.Array([arcpy.Point(j.X,j.Y) for i in arcpy.SearchCursor (polyline,fillter) for n in i.shape for j in n if j])),Out_put)
-    arcpy.AddField_management        (Out_put,'Layer','TEXT')
-    arcpy.CalculateField_management  (Out_put,"Layer", field_name, "PYTHON_9.3")
+    # arcpy.AddField_management        (Out_put,'Layer','TEXT')
+    # arcpy.CalculateField_management  (Out_put,"Layer", field_name, "PYTHON_9.3")
 
     return Out_put
 
@@ -821,6 +823,8 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
         if del_extra_report:
             os.remove(save_name)
 
+        return result
+
 def fix_name(name):
     # make sure there is no spaces in DWG name 
     conti = True
@@ -835,11 +839,63 @@ def del_char_if_in_list(list_,char):
     exe = [list_.remove(i) for i in list_ if char in i if len(i) > 1]
 
 
+def Get_df_to_pdf(df,pdf_table):
+
+    fig, ax =plt.subplots(figsize=(14,9))
+    ax.axis('tight')
+    ax.axis('off'  )
+
+    df['שגיאה ודרך פתרון'] = df.loc[:,'שגיאה ודרך פתרון'].apply(lambda x: x[::-1])
+
+    df['שגיאה ודרך פתרון'] = df['שגיאה ודרך פתרון'].replace({'0031M':'M1300', '0021M':'M1200','4002':'2004','0002':'2000','8102':'2018',\
+                                                                '4102':'2014','01020':'2010','8002':'2008','TXETM':'MTEXT','TXET':'TEXT','452':'254',\
+                                                                'LBT_AERA_CES':'DEC_AREA_TBL','noitarelced':'decleration','ROH_YCARUCCA':'ACCURACY_HOR',\
+                                                                'REV_YCARUCCA':'ACCURACY_VER','ROYEVRUS':'SURVEYOR',},regex=True)
+
+    the_table = ax.table(cellText=df.values,colLabels=df.columns,loc='center')
+
+    pp = PdfPages(pdf_table)
+    pp.savefig(fig, bbox_inches='tight')
+    pp.close()
+
+
+def MergaePdfs(pfd1,pdf2,output_pdf):
+    # Open the files that have to be merged one by one
+    pdf1File = open(pfd1, 'rb')
+    pdf2File = open(pdf2, 'rb')
+    
+    # Read the files that you have opened
+    pdf1Reader = PyPDF2.PdfFileReader(pdf1File)
+    pdf2Reader = PyPDF2.PdfFileReader(pdf2File)
+    
+    # Create a new PdfFileWriter object which represents a blank PDF document
+    pdfWriter = PyPDF2.PdfFileWriter()
+    
+    # Loop through all the pagenumbers for the first document
+    for pageNum in range(pdf1Reader.numPages):
+        pageObj = pdf1Reader.getPage(pageNum)
+        pdfWriter.addPage(pageObj)
+    
+    # Loop through all the pagenumbers for the second document
+    for pageNum in range(pdf2Reader.numPages):
+        pageObj = pdf2Reader.getPage(pageNum)
+        pdfWriter.addPage(pageObj)
+    
+    # Now that you have copied all the pages in both the documents, write them into the a new document
+    pdfOutputFile = open(output_pdf, 'wb')
+    pdfWriter.write(pdfOutputFile)
+    
+    # Close all the files - Created as well as opened
+    pdfOutputFile.close()
+    pdf1File.close()
+    pdf2File.close()
+
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
 DWGS        = arcpy.GetParameterAsText(0).split(';')
 # DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Temp\150asMade.dwg"]
+
 
 # # #     Preper Data    # # #
 scriptPath     = os.path.abspath (__file__)
@@ -855,6 +911,10 @@ for DWG in DWGS:
         DWG_name       = os.path.basename(DWG).split(".")[0]
         fgdb_name      = Create_GDB      (GDB_file,DWG_name)
         csv_name       = GDB_file  + '\\' + DWG_name +'.csv'
+        pdf_table      = GDB_file  + '\\' + DWG_name +'_DATA.pdf'
+        pdf_MAP        = GDB_file   +'\\' + DWG_name +'_MAP.pdf'
+        PDF            = GDB_file   +'\\' + DWG_name +'.pdf'
+
         if (str(python_version())) == '2.7.16':
             mxd_path   = Tamplates + '\\' + 'M1200_M1300.mxd'
         else:
@@ -923,10 +983,16 @@ for DWG in DWGS:
 
         data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
 
-        Create_CSV             (data_csv  ,csv_name)
-        Creare_report_From_CSV (csv_errors,csv_name)
+        Create_CSV                  (data_csv  ,csv_name)
+        df = Creare_report_From_CSV (csv_errors,csv_name)
+        Get_df_to_pdf               (df,pdf_table)
 
-        Create_Pdfs  (mxd_path,gdb_path,fgdb_name,GDB_file +'\\' +DWG_name + '.pdf' )
+        Create_Pdfs  (mxd_path,gdb_path,fgdb_name,pdf_MAP)
+
+        MergaePdfs                  (pdf_MAP,pdf_table,PDF)
+
+        os.remove(pdf_MAP)
+        os.remove(pdf_table)
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
 
