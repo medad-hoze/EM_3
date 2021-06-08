@@ -818,7 +818,8 @@ def Creare_report_From_CSV(path = '',path_result = '',del_extra_report = True):
         path,name   = os.path.split(save_name)
         new_csv     = path + '\\' + name.split('.')[0] + '_report.csv'
 
-        result.to_csv(new_csv,encoding="ISO-8859-8")
+        #  # # # #export to csv
+        # result.to_csv(new_csv,encoding="ISO-8859-8")
 
         if del_extra_report:
             os.remove(save_name)
@@ -841,7 +842,7 @@ def del_char_if_in_list(list_,char):
 
 def Get_df_to_pdf(df,pdf_table):
 
-    fig, ax =plt.subplots(figsize=(14,9))
+    fig, ax =plt.subplots(figsize=(13,9))
     ax.axis('tight')
     ax.axis('off'  )
 
