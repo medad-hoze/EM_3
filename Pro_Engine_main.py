@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    28.4.2021
+# date:    8.6.2021
 # version: 2.1
 
 import arcpy,math
@@ -851,6 +851,10 @@ def Get_df_to_pdf(df,pdf_table):
                                                                 '4102':'2014','01020':'2010','8002':'2008','TXETM':'MTEXT','TXET':'TEXT','452':'254',\
                                                                 'LBT_AERA_CES':'DEC_AREA_TBL','noitarelced':'decleration','ROH_YCARUCCA':'ACCURACY_HOR',\
                                                                 'REV_YCARUCCA':'ACCURACY_VER','ROYEVRUS':'SURVEYOR',},regex=True)
+
+
+    str_ = 'שגיאה ודרך פתרון'
+    df   = df.rename(columns = {str_:str_[::-1]})
 
     the_table = ax.table(cellText=df.values,colLabels=df.columns,loc='center')
 
