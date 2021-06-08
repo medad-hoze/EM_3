@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    8.6.2021
+# date:    28.4.2021
 # version: 2.1
 
 import arcpy,math
@@ -850,7 +850,7 @@ def Get_df_to_pdf(df,pdf_table):
     df['שגיאה ודרך פתרון'] = df['שגיאה ודרך פתרון'].replace({'0031M':'M1300', '0021M':'M1200','4002':'2004','0002':'2000','8102':'2018',\
                                                                 '4102':'2014','01020':'2010','8002':'2008','TXETM':'MTEXT','TXET':'TEXT','452':'254',\
                                                                 'LBT_AERA_CES':'DEC_AREA_TBL','noitarelced':'decleration','ROH_YCARUCCA':'ACCURACY_HOR',\
-                                                                'REV_YCARUCCA':'ACCURACY_VER','ROYEVRUS':'SURVEYOR',},regex=True)
+                                                                'REV_YCARUCCA':'ACCURACY_VER','ROYEVRUS':'SURVEYOR'},regex=True)
 
 
     str_ = 'שגיאה ודרך פתרון'
@@ -990,13 +990,11 @@ for DWG in DWGS:
         Create_CSV                  (data_csv  ,csv_name)
         df = Creare_report_From_CSV (csv_errors,csv_name)
         Get_df_to_pdf               (df,pdf_table)
-
-        Create_Pdfs  (mxd_path,gdb_path,fgdb_name,pdf_MAP)
-
+        Create_Pdfs                 (mxd_path,gdb_path,fgdb_name,pdf_MAP)
         MergaePdfs                  (pdf_MAP,pdf_table,PDF)
 
-        os.remove(pdf_MAP)
-        os.remove(pdf_table)
+        os.remove (pdf_MAP)
+        os.remove (pdf_table)
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
 
