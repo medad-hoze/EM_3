@@ -15,6 +15,9 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import PyPDF2
 
+coordinate_system = arcpy.SpatialReference(2039)
+arcpy.env.outputCoordinateSystem = coordinate_system
+
 class Layer_Engine():
     '''
     This Engine will transform the layer and its geometry to a pandas dataframe, then will
@@ -247,7 +250,9 @@ def Create_Geom_Prob(fgdb_name):
     geom_prob  = fgdb_name + '\\' + 'Geom_prob'
     if not arcpy.Exists(geom_prob):
         arcpy.CreateFeatureclass_management (fgdb_name,'Geom_prob','POINT')
-        add_field                           (geom_prob,'Layer','TEXT')
+        fields_ = [['Layer','TEXT'],['Handle','TEXT'],['Layer_2','TEXT'],['LyrOn','TEXT'],['LyrFrzn','TEXT']]
+        for i in fields_: add_field (geom_prob,i[0],i[1])
+
     return geom_prob
 
 def Erase(fc,del_layer,Out_put = ''):
@@ -545,13 +550,13 @@ def Check_Blocks (obj_blocks,Point,obj_poly,Line_object,fgdb_name):
     if arcpy.Exists(obj_poly.layer):
         arcpy.MakeFeatureLayer_management           (obj_blocks.layer,'block_lyr')
         arcpy.SelectLayerByLocation_management      ('block_lyr','INTERSECT',obj_poly.layer,0.01,'','INVERT')
-        data = [[i[0],i[1],str(round(i[0].centroid.X,1)) + '-' + str(round(i[0].centroid.Y,1))] for i in arcpy.da.SearchCursor ('block_lyr',['SHAPE@','Layer']) if i[0]]
+        data = [[i[0],i[1],str(round(i[0].centroid.X,1)) + '-' + str(round(i[0].centroid.Y,1)),i[2],i[3],i[4]] for i in arcpy.da.SearchCursor ('block_lyr',['SHAPE@','Layer','Handle','LyrOn','LyrFrzn']) if i[0]]
         if data:
             print_arcpy_message ('blocks outside the M1300 area',2)
             blocks.append       (["E_BLOCK_1",'blocks outside the M1300 area'])
             Geom_prob = Create_Geom_Prob                (fgdb_name)
-            insert    = arcpy.da.InsertCursor           (Geom_prob,['Layer','SHAPE@'])
-            insertion = [insert.insertRow               (['Block layer: {}'.format(value[1]),value[0]]) for value in data]
+            insert    = arcpy.da.InsertCursor           (Geom_prob,['Layer','SHAPE@','Handle','Layer_2','LyrOn','LyrFrzn'])
+            insertion = [insert.insertRow               (['Block layer: {}'.format(value[1]),value[0],value[3],value[1],value[4],value[5]]) for value in data]
             start_me = 0
             for i in data:
                 blocks.append       (["E_BLOCK_1",str(start_me)+'- layer: {}, have coordinates at  {}'.format(i[1],i[2])])
@@ -686,12 +691,14 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
         arcpy.MakeFeatureLayer_management       (Lines_all,'Lines_all_lyr',"Layer NOT IN ('M1300','M1200')")
         arcpy.SelectLayerByLocation_management  ("Lines_all_lyr","INTERSECT","M1300_lyr",0.1)
         arcpy.Select_analysis                   ("Lines_all_lyr",line_prob)
-        arcpy.Delete_management                 (Lines_all)
 
         data_error = str(list(set([row[0] for row in arcpy.da.SearchCursor(line_prob,['Layer'])])))[1:-1] 
 
         print_arcpy_message                     ("found Lines Cuting M1300 at layers: {}".format(data_error),2)
         lines.append                            (["E_1300_4","found Lines Cuting M1300 at layers: {}".format(data_error)])
+
+    if arcpy.Exists(Lines_all):
+        arcpy.Delete_management                 (Lines_all)
 
     return lines
 
@@ -734,7 +741,7 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
     # get 1 of the layers for zoom in
     m   = p.listMaps('Map')[0]
-    lyr = m.listLayers()[4]
+    lyr = m.listLayers()[5]
 
     delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates' in i.dataSource)]
 
@@ -745,12 +752,28 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
     mf.exportToPDF(pdf_output)
 
-def Cheak_CADtoGeoDataBase(DWG,fgdb_name):	
+
+def Create_line_prob(path_geom_probm,lines,block_as_line):
+    if int(str(arcpy.GetCount_management(path_geom_probm))):
+        far_blocks  = [row[0] for row in arcpy.da.SearchCursor(path_geom_probm,['Handle']) if row[0]]
+        if far_blocks:
+            handels     = ",".join(["'"+i+"'" for i in far_blocks])
+            arcpy.Select_analysis                   (lines,block_as_line,"\"Handle\" in ("+handels+")")
+
+
+def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):	
     # checking if arcpy can make layer to Geodatabase
 	CADtoGeoDataBase = []
+	create_CAD_conv  = False
+	geom_prob        = fgdb_name + '\\' + 'Geom_prob'
+	data_set         = fgdb_name + '\\' + 'chacking'
+	line_from_dst    = data_set  + '\\' + 'Polyline'
+	block_as_line    = fgdb_name + '\\' + 'Lines_from_blocks'
+
 	try:
 		arcpy.CADToGeodatabase_conversion(DWG,fgdb_name,'chacking',1)
-		print_arcpy_message("tool made CAD to Geodatabase" , status = 1)
+		print_arcpy_message   ("tool made CAD to Geodatabase" , status = 1)
+		create_CAD_conv = True
 	except:
 		print_arcpy_message("tool didnt made CAD to Geodatabase" , status = 0)
 		CADtoGeoDataBase.append(["E_FC_1",'tool didnt made CAD to Geodatabase'])
@@ -764,6 +787,23 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name):
 		print_arcpy_message(massage, status = 2)
 		CADtoGeoDataBase.append(["E_Declaration_8",massage])
 
+
+	if create_CAD_conv:
+		points   = data_set  + '\\' + 'Point'
+		check    = fgdb_name + '\\' + 'Check_geom'
+		Filter_  = "\"Entity\" = 'Insert'"
+
+		arcpy.Select_analysis                  (points,check,Filter_)
+		arcpy.MakeFeatureLayer_management      (check,'check_lyr')
+		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,0.1,'','INVERT')
+		num = int(str(arcpy.GetCount_management('check_lyr')))
+		if num > 0:
+		    print_arcpy_message     ('TOTAL {} blocks didnt pass convert to layer'.format(num),2)
+		    # fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
+		    # Missing_blocks  = [row for row in arcpy.da.SearchCursor('check_lyr',fields)]
+
+	if arcpy.Exists(geom_prob): Create_line_prob (geom_prob,line_from_dst,block_as_line)
+    
 	return CADtoGeoDataBase
 
 def get_crazy_long_test(DWG):
@@ -983,8 +1023,9 @@ for DWG in DWGS:
         check_Blocks   = Check_Blocks      (blocks,Point,poly_M,lines_M,fgdb_name  )
         check_Lines    = Check_Lines       (lines_M,Lines_all,layers_Poly,fgdb_name)
 
-        check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name)
+        check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name,blocks)
         check_annotation = get_crazy_long_test    (DWG)
+        
 
         data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
 
@@ -998,8 +1039,3 @@ for DWG in DWGS:
         os.remove (pdf_table)
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
-
-
-
-
-
