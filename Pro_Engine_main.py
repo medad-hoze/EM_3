@@ -262,6 +262,8 @@ def Erase(fc,del_layer,Out_put = ''):
     del_layer = שכבה שתמחק את השכבה הראשית
     Out_put   = שכבת הפלט, במידה ולא תוכנס שכבה, ימחק מהשכבה הראשית
     '''
+    arcpy.RepairGeometry_management(fc)
+    arcpy.RepairGeometry_management(del_layer)
     
     desc = arcpy.Describe(fc)
 
@@ -755,10 +757,13 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
 def Create_line_prob(path_geom_probm,lines,block_as_line):
     if int(str(arcpy.GetCount_management(path_geom_probm))):
-        far_blocks  = [row[0] for row in arcpy.da.SearchCursor(path_geom_probm,['Handle']) if row[0]]
+        far_blocks  = [row[0] for row in arcpy.da.SearchCursor(path_geom_probm,['Handle','LyrFrzn','LyrOn','Layer_2']) if row[0]]
         if far_blocks:
-            handels     = ",".join(["'"+i+"'" for i in far_blocks])
+            handels     = ",".join(["'"+i[0]+"'" for i in far_blocks])
             arcpy.Select_analysis                   (lines,block_as_line,"\"Handle\" in ("+handels+")")
+        
+        froozen = [i for i in far_blocks if i[1] == 1 or i[2] == 0]
+        if froozen: [print_arcpy_message('frozen or layer Off at: {}, pz turnOn or unfrozen the layer'.format(j[3])) for j in froozen]
 
 
 def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):	
@@ -799,6 +804,11 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
 		num = int(str(arcpy.GetCount_management('check_lyr')))
 		if num > 0:
 		    print_arcpy_message     ('TOTAL {} blocks didnt pass convert to layer'.format(num),2)
+		    massage  = "There is: {} Blocks that dosent pass to GDB"
+		    CADtoGeoDataBase.append(["E_BLOCK_7",massage])
+		    blockes_dosent_pass = [row[0] for row in arcpy.da.SearchCursor('check_lyr',["Layer"]) if row[0]]
+		    for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i)])
+            
 		    # fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
 		    # Missing_blocks  = [row for row in arcpy.da.SearchCursor('check_lyr',fields)]
 
@@ -1039,3 +1049,4 @@ for DWG in DWGS:
         os.remove (pdf_table)
 
 print_arcpy_message('#  #  #  #  #     F I N I S H     #  #  #  #  #')
+
