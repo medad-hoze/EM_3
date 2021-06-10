@@ -755,15 +755,23 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
     mf.exportToPDF(pdf_output)
 
 
-def Create_line_prob(path_geom_probm,lines,block_as_line):
+def Create_line_prob(path_geom_probm,lines,block_as_line,Create_line_prob):
+    frozen_layers = []
     if int(str(arcpy.GetCount_management(path_geom_probm))):
         far_blocks  = [row[0] for row in arcpy.da.SearchCursor(path_geom_probm,['Handle','LyrFrzn','LyrOn','Layer_2']) if row[0]]
+        if Create_line_prob:
+            far_blocks.extend(Create_line_prob)
         if far_blocks:
             handels     = ",".join(["'"+i[0]+"'" for i in far_blocks])
             arcpy.Select_analysis                   (lines,block_as_line,"\"Handle\" in ("+handels+")")
         
+        print_arcpy_message(far_blocks)
         froozen = [i for i in far_blocks if i[1] == 1 or i[2] == 0]
-        if froozen: [print_arcpy_message('frozen or layer Off at: {}, pz turnOn or unfrozen the layer'.format(j[3])) for j in froozen]
+        if froozen:
+            for j in froozen:
+                print_arcpy_message('frozen or layer Off at: {}, pz turnOn or unfrozen the layer'.format(j[3]),2)
+                frozen_layers.append('frozen or layer Off at: {}, pz turnOn or unfrozen the layer'.format(j[3]))
+        
 
 
 def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):	
@@ -797,7 +805,8 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
 		points   = data_set  + '\\' + 'Point'
 		check    = fgdb_name + '\\' + 'Check_geom'
 		Filter_  = "\"Entity\" = 'Insert'"
-
+        
+		blockes_dosent_pass = []
 		arcpy.Select_analysis                  (points,check,Filter_)
 		arcpy.MakeFeatureLayer_management      (check,'check_lyr')
 		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,0.1,'','INVERT')
@@ -806,13 +815,17 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
 		    print_arcpy_message     ('TOTAL {} blocks didnt pass convert to layer'.format(num),2)
 		    massage  = "There is: {} Blocks that dosent pass to GDB"
 		    CADtoGeoDataBase.append(["E_BLOCK_7",massage])
-		    blockes_dosent_pass = [row[0] for row in arcpy.da.SearchCursor('check_lyr',["Layer"]) if row[0]]
-		    for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i)])
+		    blockes_dosent_pass = [row for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]
+		    for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i[3])])
             
 		    # fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
 		    # Missing_blocks  = [row for row in arcpy.da.SearchCursor('check_lyr',fields)]
 
-	if arcpy.Exists(geom_prob): Create_line_prob (geom_prob,line_from_dst,block_as_line)
+	if arcpy.Exists(geom_prob): 
+		frozen_layer = Create_line_prob (geom_prob,line_from_dst,block_as_line,blockes_dosent_pass)
+		for i in frozen_layer:
+		    if i:
+		        CADtoGeoDataBase.append(['E_BLOCK_8',i])
     
 	return CADtoGeoDataBase
 
@@ -1035,7 +1048,6 @@ for DWG in DWGS:
 
         check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name,blocks)
         check_annotation = get_crazy_long_test    (DWG)
-        
 
         data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
 
