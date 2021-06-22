@@ -752,7 +752,13 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
     mf.camera.setExtent    (mf.getLayerExtent(lyr,False,True))
     mf.camera.scale = mf.camera.scale*1.8
 
-    mf.exportToPDF(pdf_output)
+    name = os.path.basename(pdf_output).split('.')[0]
+    DT = lyt.listElements ('TEXT_ELEMENT')
+    for i in DT:
+        if i.name == 'name':
+            i.text = name
+
+    lyt.exportToPDF(pdf_output)
 
 
 def Create_line_prob(path_geom_probm,lines,block_as_line,Create_line_prob):
