@@ -743,7 +743,7 @@ def Create_Pdfs(mxd_path,gdb_Tamplate,gdb_path,pdf_output):
 
     # get 1 of the layers for zoom in
     m   = p.listMaps('Map')[0]
-    lyr = m.listLayers()[5]
+    lyr = m.listLayers()[6]
 
     delete_templates = [m.removeLayer(i) for i in m.listLayers() if ('Tamplates' in i.dataSource)]
 
@@ -776,8 +776,8 @@ def Create_line_prob(path_geom_probm,lines,block_as_line,Create_line_prob):
         froozen = [i for i in far_blocks if i[1] == 1 or i[2] == 0]
         if froozen:
             for j in froozen:
-                print_arcpy_message('frozen or layer Off at: {}, pz turnOn or unfrozen the layer'.format(j[3]),2)
-                frozen_layers.append('frozen or layer Off at: {}, pz turnOn or unfrozen the layer'.format(j[3]))
+                print_arcpy_message('frozen or layer Off at: {}, turn On or unfrozen the layer'.format(j[3]),2)
+                frozen_layers.append('frozen or layer Off at: {}, turn On or unfrozen the layer'.format(j[3]))
     return frozen_layers
         
 
@@ -836,7 +836,49 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
     
 	return CADtoGeoDataBase
 
-def get_crazy_long_test(DWG):
+
+def Create_text_Prob(fgdb_name,name):
+    text_prob  = fgdb_name + '\\' + name
+    if not arcpy.Exists(text_prob):
+        arcpy.CreateFeatureclass_management (fgdb_name,name,'POINT')
+        fields_ = [['Layer','TEXT'],['Style','TEXT'],['Entity','TEXT']]
+        for i in fields_: add_field (text_prob,i[0],i[1])
+
+    return text_prob
+
+
+def Get_wrong_text_style(anno,gdb,Wrong_text):
+
+    prob = []
+
+    anno_class = Layer_Engine(anno)
+
+    anno_class.Filter_df(b'Entity','Text',True)
+
+    anno_class.df = anno_class.df[anno_class.df[b'Style'].isin(Wrong_text)]
+
+    if anno_class.df.shape[0]:
+
+        print_arcpy_message ('HAVING Wrong TEXT foramt',2)
+
+        text_prob = Create_text_Prob (gdb,'text_prob')
+        Gropyby   = anno_class.df.groupby(b'Style')[b'Layer'].apply(set).reset_index(name='Layer')
+        data      = anno_class.df[[b'Layer','SHAPE@',b'Entity',b'Style']].values.tolist()
+
+        data_print = Gropyby.values.tolist()
+        for i in data_print:
+            message = 'Wrong text style: ' + i[0] + ', in layers: ' + ''.join(i for i in str(i[1]) if i not in ('{','}'))
+            print_arcpy_message (message,2)
+            prob.append(["E_Annotation_3",message])
+
+
+        insert    = arcpy.da.InsertCursor           (text_prob,['Layer','SHAPE@','Entity','Style'])
+        insertion = [insert.insertRow               ([value[0],value[1],value[2],value[3]]) for value in data]
+
+        return prob
+
+
+def Annotation_problems(DWG,gdb):
         # check if there is more then 254 chractes in a field.
 		long_prob = []
 		anno  = DWG +'\\' + 'Annotation'
@@ -852,6 +894,9 @@ def get_crazy_long_test(DWG):
 			mtext_layers = ','.join([i for i in set(mtext)])
 			print_arcpy_message("There is MText in layers: {}, no Mtext is allowed".format(mtext_layers),2)
 			long_prob.append   (["E_Annotation_2","There is MText in layers: {}, no Mtext is allowed".format(mtext_layers)])
+
+		# prob = Get_wrong_text_style(anno,gdb,Wrong_text = ['miryl'])
+		# long_prob = long_prob + prob
 				
 		return long_prob
 
@@ -921,13 +966,16 @@ def Get_df_to_pdf(df,pdf_table):
     df['שגיאה ודרך פתרון'] = df['שגיאה ודרך פתרון'].replace({'0031M':'M1300', '0021M':'M1200','4002':'2004','0002':'2000','8102':'2018',\
                                                                 '4102':'2014','01020':'2010','8002':'2008','TXETM':'MTEXT','TXET':'TEXT','452':'254',\
                                                                 'LBT_AERA_CES':'DEC_AREA_TBL','noitarelced':'decleration','ROH_YCARUCCA':'ACCURACY_HOR',\
-                                                                'REV_YCARUCCA':'ACCURACY_VER','ROYEVRUS':'SURVEYOR'},regex=True)
+                                                                'REV_YCARUCCA':'ACCURACY_VER','ROYEVRUS':'SURVEYOR','TXETBEH':'HEBTEXT'},regex=True)
 
 
     str_ = 'שגיאה ודרך פתרון'
     df   = df.rename(columns = {str_:str_[::-1]})
 
-    the_table = ax.table(cellText=df.values,colLabels=df.columns,loc='center')
+    try:
+        the_table = ax.table(cellText=df.values,colLabels=df.columns,loc='center')
+    except:
+        print_arcpy_message("no Rows Found")
 
     pp = PdfPages(pdf_table)
     pp.savefig(fig, bbox_inches='tight')
@@ -1054,7 +1102,7 @@ for DWG in DWGS:
         check_Lines    = Check_Lines       (lines_M,Lines_all,layers_Poly,fgdb_name)
 
         check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name,blocks)
-        check_annotation = get_crazy_long_test    (DWG)
+        check_annotation = Annotation_problems    (DWG,fgdb_name)
 
         data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
 
