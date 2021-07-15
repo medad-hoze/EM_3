@@ -24,7 +24,7 @@ class Layer_Engine():
     check the content of its values
     '''
     def __init__(self,layer,columns = 'all'):
-
+        
         if columns == 'all':
             columns = [f.name.encode('UTF-8') for f in arcpy.ListFields(layer)]
             columns.extend(['SHAPE@AREA'])
@@ -33,11 +33,15 @@ class Layer_Engine():
         self.layer           = layer
         self.gdb             = os.path.dirname  (layer)
         self.name            = os.path.basename (layer)
-        self.desc            = arcpy.Describe(layer)
-        self.shapetype       = ShapeType(self.desc)
+        self.desc            = arcpy.Describe   (layer)
+        self.shapetype       = ShapeType        (self.desc)
         self.oid             = str(self.desc.OIDFieldName)
         self.len_columns     = len(columns)
+        # if not self.name == 'Point':
         self.data            = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns)]
+        # else:
+        #     print_arcpy_message ("Coudnt make declaration by select analysis, moving to cursor",2)
+        #     self.data            = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns,"\"Layer\" in ('declaration','DECLARATION','Declaration')")]
         self.df              = pd.DataFrame(data = self.data, columns = columns)
         self.df["geom_type"] = self.shapetype
         self.len_rows        = self.df.shape[0]
@@ -138,13 +142,17 @@ class Layer_Engine():
                 return self.bad_area
         else:
             self.bad_area = False
+
             
     def Curves(self,Out_put):
         # check if there is curves in the layers, return True for curves, out put of the curves and the number of curves found
         if self.shapetype in ['POLYGON','POLYLINE']:
             curves_list = [n for i in self.data for n in i if 'describe geometry object' in str(n) if 'curve' in str(json.loads(i[-1].JSON))]
             if curves_list:
-                arcpy.CopyFeatures_management(curves_list,Out_put)
+                try:
+                    arcpy.CopyFeatures_management(curves_list,Out_put)
+                except:
+                    print_arcpy_message("tool Found: {} Curves, but coudnt copy them".format(len(curves_list)),2)
                 self.exists_curves = True
                 return len(curves_list)
             else:
@@ -255,6 +263,27 @@ def Create_Geom_Prob(fgdb_name):
 
     return geom_prob
 
+
+# def create_layer_from_list(DWG,gdb_name,layer_name,filter_):
+
+#     Out_put = gdb_name + '\\' + layer_name
+    
+
+#     columns = [f.name.encode('UTF-8') for f in arcpy.ListFields(DWG)]
+#     columns.extend(['SHAPE@'])
+#     data            = [row[:] for row in arcpy.da.SearchCursor (DWG,columns,filter_)]
+
+#     if len([i for i in columns if i == b'OBJECTID']) == 0:
+#         columns = [b'OBJECTID'] + columns
+
+#     desc            = arcpy.Describe    (DWG)
+#     shapetype       = ShapeType         (desc)
+#     arcpy.CreateFeatureclass_management (gdb_name,layer_name,shapetype,DWG)
+#     insert = arcpy.da.InsertCursor      (Out_put,columns)
+#     print_arcpy_message(columns)
+#     insertion = [insert.insertRow       ([value]) for value in data]
+
+
 def Erase(fc,del_layer,Out_put = ''):
 
     '''
@@ -321,7 +350,9 @@ def Extract_dwg_to_layer(fgdb_name,DWF_layer,layer_name,Filter = ''):
         return fc_out_line
     except:
         msg = r"Coudnt Make FeatureClassToFeatureClass_conversion for layers {}".format(layer_name)
+        # fc_out_line = create_layer_from_list(DWF_layer,fgdb_name,layer_name,Filter)
         print_arcpy_message(msg,2)
+        return DWF_layer
         
 
 def Create_GDB(GDB_file,GDB_name):
@@ -685,9 +716,9 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
     # check if line intersect with M1300
 
-    if arcpy.Exists(poly_M1200_M1300):
+    if arcpy.Exists(poly_M1200_M1300) and not os.path.dirname(Lines_all).endswith('.dwg'):
         Erase(Lines_all,poly_M1200_M1300)
-    if int(str(arcpy.GetCount_management(Lines_all))):
+    if int(str(arcpy.GetCount_management(Lines_all))) and not os.path.dirname(Lines_all).endswith('.dwg'):
         line_prob = fgdb_name + '\\' + 'Line_prob'
         arcpy.MakeFeatureLayer_management       (obj_lines.layer,'M1300_lyr',"Layer = 'M1300'")
         arcpy.MakeFeatureLayer_management       (Lines_all,'Lines_all_lyr',"Layer NOT IN ('M1300','M1200')")
@@ -699,7 +730,7 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
         print_arcpy_message                     ("found Lines Cuting M1300 at layers: {}".format(data_error),2)
         lines.append                            (["E_1300_4","found Lines Cuting M1300 at layers: {}".format(data_error)])
 
-    if arcpy.Exists(Lines_all):
+    if arcpy.Exists(Lines_all) and not os.path.dirname(Lines_all).endswith('.dwg'):
         arcpy.Delete_management                 (Lines_all)
 
     return lines
@@ -771,7 +802,10 @@ def Create_line_prob(path_geom_probm,lines,block_as_line,Create_line_prob):
         if far_blocks:
             # find the line layers connected with the far blocks and the blocks that didnt pass to gdb
             handels     = ",".join(["'"+i[0]+"'" for i in far_blocks])
-            arcpy.Select_analysis                   (lines,block_as_line,"\"Handle\" in ("+handels+")")
+            if arcpy.Exists(lines):
+                arcpy.Select_analysis                   (lines,block_as_line,"\"Handle\" in ("+handels+")")
+            else:
+                print_arcpy_message('You have froozen and TurnOff layers at habdeles: {}'.format(handels),2)
         
         froozen = [i for i in far_blocks if i[1] == 1 or i[2] == 0]
         if froozen:
@@ -801,30 +835,34 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
 
     # check declaration in Geodatabase
 	layer_cheacking = fgdb_name + '\\' + 'chacking\Point'
-	decl_list = [row[0] for row in arcpy.da.SearchCursor(layer_cheacking,["Layer"]) if row[0] in ('declaration','DECLARATION')]
-	if len(decl_list) > 1 or len(decl_list) == 0:
-		massage = "layer declaration from chacking\point (Geodatabase) found {} declaration, must be 1 ".format(len(decl_list))
-		print_arcpy_message(massage, status = 2)
-		CADtoGeoDataBase.append(["E_Declaration_8",massage])
+	if arcpy.Exists(layer_cheacking):
+		decl_list = [row[0] for row in arcpy.da.SearchCursor(layer_cheacking,["Layer"]) if row[0] in ('declaration','DECLARATION')]
+		if len(decl_list) > 1 or len(decl_list) == 0:
+		    massage = "layer declaration from chacking\point (Geodatabase) found {} declaration, must be 1 ".format(len(decl_list))
+		    print_arcpy_message(massage, status = 2)
+		    CADtoGeoDataBase.append(["E_Declaration_8",massage])
 
-
+	blockes_dosent_pass = []
 	if create_CAD_conv:
 		points   = data_set  + '\\' + 'Point'
 		check    = fgdb_name + '\\' + 'Check_geom'
 		Filter_  = "\"Entity\" = 'Insert'"
         
-		blockes_dosent_pass = []
 		arcpy.Select_analysis                  (points,check,Filter_)
 		arcpy.MakeFeatureLayer_management      (check,'check_lyr')
 		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,0.1,'','INVERT')
 		num = int(str(arcpy.GetCount_management('check_lyr')))
 		if num > 0:
 		    print_arcpy_message     ('TOTAL {} blocks didnt pass convert to layer'.format(num),2)
-		    massage  = "There is: {} Blocks that dosent pass to GDB"
+		    massage  = "There is: {} Blocks that dosent pass to GDB".format(num)
 		    CADtoGeoDataBase.append(["E_BLOCK_7",massage])
 		    blockes_dosent_pass = [row for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]
-		    for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i[3])])
-            
+		    # for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i[3])])
+                
+		if blockes_dosent_pass:
+		    On_layers = list(set([row[3] for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]))
+		    text_me   = ','.join([i for i in set(On_layers)])
+		    CADtoGeoDataBase.append(["E_BLOCK_7",'total blook that didnt pass: {}, in layers: {}'.format(len(blockes_dosent_pass),text_me)])
 		    # fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
 		    # Missing_blocks  = [row for row in arcpy.da.SearchCursor('check_lyr',fields)]
 
@@ -1063,7 +1101,15 @@ for DWG in DWGS:
         layers_Block         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2,Filter4)
 
         declaration = fgdb_name + '\\' + 'declaration'
-        arcpy.Select_analysis (layers_Block,declaration,"\"Layer\" in ('declaration','DECLARATION','Declaration')")
+        try:
+            arcpy.Select_analysis (layers_Block,declaration,"\"Layer\" in ('declaration','DECLARATION','Declaration')")
+        except:
+            declaration = DWG +'\\' + 'Point'
+
+        # Get Declaration
+        layer_name2          = 'declaration'
+        Filter5              = "\"Layer\" in ('declaration','DECLARATION','Declaration')"
+        layers_Block         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2,Filter5)
 
 
         # # #   Get polygon M1200 and M1300, if not found, Create from Line   # # #
