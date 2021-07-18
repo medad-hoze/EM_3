@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    28.4.2021
-# version: 2.1
+# date:    18.7.2021
+# version: 2.2
 
 import arcpy,math
 import pandas as pd
@@ -842,6 +842,7 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
 		    print_arcpy_message(massage, status = 2)
 		    CADtoGeoDataBase.append(["E_Declaration_8",massage])
 
+    # # Check if there is blocked that pass DWG to geo database but not feature class to feature class
 	blockes_dosent_pass = []
 	if create_CAD_conv:
 		points   = data_set  + '\\' + 'Point'
@@ -850,21 +851,21 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
         
 		arcpy.Select_analysis                  (points,check,Filter_)
 		arcpy.MakeFeatureLayer_management      (check,'check_lyr')
-		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,0.1,'','INVERT')
+		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,1,'','INVERT')
 		num = int(str(arcpy.GetCount_management('check_lyr')))
 		if num > 0:
 		    print_arcpy_message     ('TOTAL {} blocks didnt pass convert to layer'.format(num),2)
-		    massage  = "There is: {} Blocks that dosent pass to GDB".format(num)
-		    CADtoGeoDataBase.append(["E_BLOCK_7",massage])
+		    # massage  = "There is: {} Blocks that dosent pass to GDB".format(num)
+		    # CADtoGeoDataBase.append(["E_BLOCK_7",massage])
 		    blockes_dosent_pass = [row for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]
 		    # for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i[3])])
                 
-		if blockes_dosent_pass:
-		    On_layers = list(set([row[3] for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]))
-		    text_me   = ','.join([i for i in set(On_layers)])
-		    CADtoGeoDataBase.append(["E_BLOCK_7",'total blook that didnt pass: {}, in layers: {}'.format(len(blockes_dosent_pass),text_me)])
-		    # fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
-		    # Missing_blocks  = [row for row in arcpy.da.SearchCursor('check_lyr',fields)]
+		# if blockes_dosent_pass:
+		#     On_layers = list(set([row[3] for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]))
+		#     text_me   = ','.join([i for i in set(On_layers)])
+		#     CADtoGeoDataBase.append(["E_BLOCK_7",'total blook that didnt pass: {}, in layers: {}'.format(len(blockes_dosent_pass),text_me)])
+		#     fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
+		#     Missing_blocks  = [row for row in arcpy.da.SearchCursor('check_lyr',fields)]
 
 	if arcpy.Exists(geom_prob): 
 		frozen_layer = Create_line_prob (geom_prob,line_from_dst,block_as_line,blockes_dosent_pass)
