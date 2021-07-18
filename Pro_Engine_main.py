@@ -15,8 +15,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import PyPDF2
 
-coordinate_system = arcpy.SpatialReference(2039)
-arcpy.env.outputCoordinateSystem = coordinate_system
 
 class Layer_Engine():
     '''
@@ -37,6 +35,8 @@ class Layer_Engine():
         self.shapetype       = ShapeType        (self.desc)
         self.oid             = str(self.desc.OIDFieldName)
         self.len_columns     = len(columns)
+        self.crs             = self.desc.spatialReference
+        self.crs_name        = self.crs.name
         # if not self.name == 'Point':
         self.data            = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns)]
         # else:
@@ -1051,6 +1051,25 @@ def MergaePdfs(pfd1,pdf2,output_pdf):
     pdf1File.close()
     pdf2File.close()
 
+
+
+def Check_coordinate_system(blocks,lines_M,poly_M):
+    prob_crs      = []
+    crs_check_bad = []
+    for i in [blocks.crs_name,lines_M.crs_name,poly_M.crs_name]:
+        if i not in ['Israel_TM_Grid','Unknown']:
+            crs_check_bad.append(i)
+
+    if crs_check_bad:
+        bad_crs = list(set(crs_check_bad))[0]
+        print_arcpy_message("DWG with bad CRS, name: {}, plz use NEW israel or no CRS".format(bad_crs),status = 2)
+        prob_crs.append   (["E_CRS_1","DWG with bad CRS, name: {}, plz use NEW israel or no CRS".format(bad_crs)])    
+    else:
+        coordinate_system = arcpy.SpatialReference(2039)
+        arcpy.env.outputCoordinateSystem = coordinate_system
+    return prob_crs
+
+
 print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
@@ -1142,6 +1161,8 @@ for DWG in DWGS:
         
         # # #  Action  # # #
 
+        check_crs      = Check_coordinate_system(blocks,lines_M,poly_M)
+
         cheak_version  = cheak_cad_version (DWG)
         Check_decler   = cheak_declaration (delcar,lines_M)
         check_Blocks   = Check_Blocks      (blocks,Point,poly_M,lines_M,fgdb_name  )
@@ -1150,7 +1171,7 @@ for DWG in DWGS:
         check_CADtoGeo   = Cheak_CADtoGeoDataBase (DWG,fgdb_name,blocks)
         check_annotation = Annotation_problems    (DWG,fgdb_name)
 
-        data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation
+        data_csv = cheak_version + Check_decler + check_Blocks + check_Lines + check_CADtoGeo + check_annotation + check_crs
 
         Create_CSV                  (data_csv  ,csv_name)
         df = Creare_report_From_CSV (csv_errors,csv_name)
