@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    18.7.2021
-# version: 2.2
+# date:    20.7.2021
+# version: 2.3
 
 import arcpy,math
 import pandas as pd
@@ -37,11 +37,7 @@ class Layer_Engine():
         self.len_columns     = len(columns)
         self.crs             = self.desc.spatialReference
         self.crs_name        = self.crs.name
-        # if not self.name == 'Point':
         self.data            = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns)]
-        # else:
-        #     print_arcpy_message ("Coudnt make declaration by select analysis, moving to cursor",2)
-        #     self.data            = [row[:] for row in arcpy.da.SearchCursor (self.layer,columns,"\"Layer\" in ('declaration','DECLARATION','Declaration')")]
         self.df              = pd.DataFrame(data = self.data, columns = columns)
         self.df["geom_type"] = self.shapetype
         self.len_rows        = self.df.shape[0]
@@ -162,12 +158,14 @@ class Layer_Engine():
 
     def Check_Block_0_0(self):
         # check if the block have 0,0 coordiates, return a list of the these cooridnates
-        if self.shapetype == 'POINT':
-            df2 = self.df_shape.copy()
-            df2.where  ((df2["X"]==0) & (df2["Y"]==0) & (df2['Entity'] == "Insert"), inplace = True)
-            df2 = df2.dropna (axis=0, how='all')
-            Block_at_0_0 = df2.values.tolist()
-            return Block_at_0_0
+        Block_at_0_0 = []
+        if not self.df.empty:
+            if self.shapetype == 'POINT':
+                df2 = self.df_shape.copy()
+                df2.where  ((df2["X"]==0) & (df2["Y"]==0) & (df2['Entity'] == "Insert"), inplace = True)
+                df2 = df2.dropna (axis=0, how='all')
+                Block_at_0_0 = df2.values.tolist()
+        return Block_at_0_0
 
     def Check_Columns_letters(self,bad_charc = ['-','"','.']):
         # df.columns[df.columns.str.contains('-|"|.')]   # למה הנקודה תמיד מופיעה כאילו היא קיימת
@@ -568,6 +566,7 @@ def Check_Blocks (obj_blocks,Point,obj_poly,Line_object,fgdb_name):
 
 
     # check if there is block in coordinate 0,0
+
     at_Zero_Zero = obj_blocks.Check_Block_0_0()
     if len(at_Zero_Zero) > 0:
         print_arcpy_message ('you have blocks at coordinates 0,0',2)
