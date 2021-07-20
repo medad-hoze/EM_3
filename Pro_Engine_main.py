@@ -465,7 +465,7 @@ def cheak_declaration(obj_declar,obj_line):
     # check if there is declaration in file
     if obj_declar.len_rows == 0:
         print_arcpy_message ("No Declaration Found",2)
-        declaration.append  (["E_Declaration_2","No Declaration Found"])
+        declaration.append  (["E_Decleration_2","No Declaration Found"])
         return declaration
     elif obj_declar.len_rows > 1:
         print_arcpy_message ("you have {} declarations, only 1 is approved".format(obj_declar.len_rows),2)
