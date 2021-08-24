@@ -15,6 +15,18 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import PyPDF2
 
+arcpy.AddMessage('##############################################')
+
+arcpy.AddMessage('Tools made for Mapi - israel center of mapping')
+
+arcpy.AddMessage('### If any bugs found, contact medad hoze ###')
+
+arcpy.AddMessage('### medadhoze@hotmail.com  ###')
+
+arcpy.AddMessage('### plz Send: 1) Picture of the error, 2) layers, 3) Arcmap version (10.1/10.3/10.5/10.6/10.8/arcpro)  ###')
+
+arcpy.AddMessage('##############################################')
+
 
 class Layer_Engine():
     '''
