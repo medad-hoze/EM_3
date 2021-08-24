@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    20.7.2021
-# version: 2.3
+# date:    24.8.2021
+# version: 2.4
 
 import arcpy,math
 import pandas as pd
@@ -56,7 +56,8 @@ class Layer_Engine():
         if self.len_rows > 0:
             if self.shapetype != 'POINT':
                 columns_shape            = [self.oid,'X','Y','Layer','Area','SHAPE']
-                self.data_shape          = [[i[1],j.X,j.Y,i[2],i[3],i[0]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) for n in i[0] for j in n if j]
+                self.data_shape          = [[i[1],j.X,j.Y,i[2],i[3],i[0]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) if i[0] for n in i[0] for j in n if j if n]
+                self.No_Shape            = [[i[1],i[2],i[3]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) if not i[0]]
                 self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
                 self.df_shape['index1']  = self.df_shape.index
                 self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
@@ -542,7 +543,7 @@ def cheak_declaration(obj_declar,obj_line):
             fields_msg = ''.join([str(i)[1:] + '-' for i in missing_fields])[0:-1]
             print_arcpy_message("layer 'declaration' missing fields: {}".format(fields_msg),status = 2)
             declaration.append(["E_Decleration_5","Missing fields"])
-            declaration.append(["E_Decleration_5",fields_msg])
+            declaration.append(["E_Declaration_5",fields_msg])
 
     return declaration
 
@@ -731,6 +732,15 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
     if arcpy.Exists(Lines_all) and not os.path.dirname(Lines_all).endswith('.dwg'):
         arcpy.Delete_management                 (Lines_all)
+
+
+    # Check if there is NoType shape 
+    if not obj_lines.No_Shape:
+        print_arcpy_message                     ("found Lines That dosent have shape",2)
+        for i in obj_lines.No_Shape: print_arcpy_message ("there is feature with no shape at layer: {}".format(i[0]),2)
+        lines.append                            (["E_1300_4","found Lines Cuting M1300 at layers: {}".format(data_error)])
+
+
 
     return lines
 
