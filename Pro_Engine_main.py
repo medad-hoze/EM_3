@@ -733,7 +733,7 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
     line_all_class.Extract_shape()
     
     print_arcpy_message(line_all_class.No_Shape)
-    if not line_all_class.No_Shape:
+    if line_all_class.No_Shape:
         print_arcpy_message                     ("found Lines That dosent have shape",2)
         for i in line_all_class.No_Shape: print_arcpy_message ("there is feature with no shape at layer: {}".format(i[1]),2)
         message = ','.join(i[1] for i in line_all_class.No_Shape)[1:]
