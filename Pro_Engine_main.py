@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    24.8.2021
-# version: 2.4
+# date:    20.7.2021
+# version: 2.3
 
 import arcpy,math
 import pandas as pd
@@ -26,6 +26,7 @@ arcpy.AddMessage('### medadhoze@hotmail.com  ###')
 arcpy.AddMessage('### plz Send: 1) Picture of the error, 2) layers, 3) Arcmap version (10.1/10.3/10.5/10.6/10.8/arcpro)  ###')
 
 arcpy.AddMessage('##############################################')
+
 
 
 class Layer_Engine():
@@ -726,6 +727,18 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
         insert    = arcpy.da.InsertCursor   (geom_prob,['Layer','SHAPE@'])
         insertion = [insert.insertRow       ([value[0],arcpy.Point(value[1],value[2])]) for value in geom_list]
 
+
+    # Check if there is NoType shape 
+    line_all_class  = Layer_Engine(Lines_all)
+    line_all_class.Extract_shape()
+    
+    print_arcpy_message(line_all_class.No_Shape)
+    if not line_all_class.No_Shape:
+        print_arcpy_message                     ("found Lines That dosent have shape",2)
+        for i in line_all_class.No_Shape: print_arcpy_message ("there is feature with no shape at layer: {}".format(i[1]),2)
+        message = ','.join(i[1] for i in line_all_class.No_Shape)[1:]
+        lines.append                            (["E_Line_1","Features with shape NoType at layers: {}".format(message)])
+
     # check if line intersect with M1300
 
     if arcpy.Exists(poly_M1200_M1300) and not os.path.dirname(Lines_all).endswith('.dwg'):
@@ -744,14 +757,6 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
     if arcpy.Exists(Lines_all) and not os.path.dirname(Lines_all).endswith('.dwg'):
         arcpy.Delete_management                 (Lines_all)
-
-
-    # Check if there is NoType shape 
-    if not obj_lines.No_Shape:
-        print_arcpy_message                     ("found Lines That dosent have shape",2)
-        for i in obj_lines.No_Shape: print_arcpy_message ("there is feature with no shape at layer: {}".format(i[0]),2)
-        lines.append                            (["E_1300_4","found Lines Cuting M1300 at layers: {}".format(data_error)])
-
 
 
     return lines
