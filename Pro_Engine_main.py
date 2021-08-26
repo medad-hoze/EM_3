@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    20.7.2021
-# version: 2.3
+# date:    25.8.2021
+# version: 3
 
 import arcpy,math
 import pandas as pd
@@ -64,13 +64,15 @@ class Layer_Engine():
         # check the count of all the features in the df
         self.df['count'] = self.df.groupby(field)[field].transform('count')
 
+    def No_shape(self):
+        self.No_Shape            = [[i[1],i[2],i[3]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) if not i[0]]
+
     def Extract_shape(self):
         # extract the Geometry of the features
         if self.len_rows > 0:
             if self.shapetype != 'POINT':
                 columns_shape            = [self.oid,'X','Y','Layer','Area','SHAPE']
                 self.data_shape          = [[i[1],j.X,j.Y,i[2],i[3],i[0]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) if i[0] for n in i[0] for j in n if j if n]
-                self.No_Shape            = [[i[1],i[2],i[3]] for i in arcpy.da.SearchCursor (self.layer,["SHAPE@",self.oid,'Layer','SHAPE@AREA']) if not i[0]]
                 self.df_shape            = pd.DataFrame(data = self.data_shape, columns = columns_shape)
                 self.df_shape['index1']  = self.df_shape.index
                 self.df_shape['X_Y']     = self.df_shape.apply(lambda row: Connect_rows(row['X'] , row['Y']),axis = 1)
@@ -176,7 +178,7 @@ class Layer_Engine():
         if not self.df.empty:
             if self.shapetype == 'POINT':
                 df2 = self.df_shape.copy()
-                df2.where  ((df2["X"]==0) & (df2["Y"]==0) & (df2['Entity'] == "Insert"), inplace = True)
+                df2.where  ((df2["X"] < 10) & (df2["X"] > -10) & (df2["Y"] < 10) & (df2["Y"] > -10) & (df2['Entity'] == "Insert"), inplace = True)
                 df2 = df2.dropna (axis=0, how='all')
                 Block_at_0_0 = df2.values.tolist()
         return Block_at_0_0
@@ -294,6 +296,19 @@ def Create_Geom_Prob(fgdb_name):
 #     insert = arcpy.da.InsertCursor      (Out_put,columns)
 #     print_arcpy_message(columns)
 #     insertion = [insert.insertRow       ([value]) for value in data]
+
+def Main_0_0_Error(obj_blocks,id_prob_excel = "E_BLOCK_2",message = "you have blocks at coordinates 0,0"):
+    blocks_ = []
+    at_Zero_Zero = obj_blocks.Check_Block_0_0()
+    if len(at_Zero_Zero) > 0:
+        print_arcpy_message ('you have blocks at coordinates 0,0',2)
+        blocks_.append       ([id_prob_excel,message])
+        start = 0
+        for i in at_Zero_Zero:
+            blocks_.append       ([str(start),'layer: {}, have blocks at coordinates 0,0'.format(i[1])])
+            print_arcpy_message('block: {}'.format(str(i)),2)
+            start += 1
+    return blocks_
 
 
 def Erase(fc,del_layer,Out_put = ''):
@@ -581,17 +596,9 @@ def Check_Blocks (obj_blocks,Point,obj_poly,Line_object,fgdb_name):
 
     # check if there is block in coordinate 0,0
 
-    at_Zero_Zero = obj_blocks.Check_Block_0_0()
-    if len(at_Zero_Zero) > 0:
-        print_arcpy_message ('you have blocks at coordinates 0,0',2)
-        blocks.append       (["E_BLOCK_2",'you have blocks at coordinates 0,0'])
-        start = 0
-        for i in at_Zero_Zero:
-            blocks.append       ([str(start),'layer: {}, have blocks at coordinates 0,0'.format(i[1])])
-            print_arcpy_message('block: {}'.format(str(i)),2)
-            start += 1
-
-
+    blocks_0_0 = Main_0_0_Error(obj_blocks)
+    blocks = blocks + blocks_0_0
+            
     # Check if there if blocks outside M1300
     if arcpy.Exists(obj_poly.layer):
         arcpy.MakeFeatureLayer_management           (obj_blocks.layer,'block_lyr')
@@ -730,9 +737,8 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
     # Check if there is NoType shape 
     line_all_class  = Layer_Engine(Lines_all)
-    line_all_class.Extract_shape()
+    line_all_class.No_shape()
     
-    print_arcpy_message(line_all_class.No_Shape)
     if line_all_class.No_Shape:
         print_arcpy_message                     ("found Lines That dosent have shape",2)
         for i in line_all_class.No_Shape: print_arcpy_message ("there is feature with no shape at layer: {}".format(i[1]),2)
@@ -877,21 +883,33 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
         
 		arcpy.Select_analysis                  (points,check,Filter_)
 		arcpy.MakeFeatureLayer_management      (check,'check_lyr')
-		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,1,'','INVERT')
-		num = int(str(arcpy.GetCount_management('check_lyr')))
+
+		print_arcpy_message(obj_block.layer)
+		print_arcpy_message(check)
+
+		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,0.1)
+		arcpy.DeleteFeatures_management        ('check_lyr')
+
+		num = int(str(arcpy.GetCount_management(check)))
 		if num > 0:
 		    print_arcpy_message     ('TOTAL {} blocks didnt pass convert to layer'.format(num),2)
-		    # massage  = "There is: {} Blocks that dosent pass to GDB".format(num)
-		    # CADtoGeoDataBase.append(["E_BLOCK_7",massage])
-		    blockes_dosent_pass = [row for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]
-		    # for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i[3])])
+
+		    massage  = "There is: {} Blocks that dosent pass to GDB".format(num)
+		    CADtoGeoDataBase.append(["E_BLOCK_7",massage])
+		    blockes_dosent_pass = [row for row in arcpy.da.SearchCursor(check,['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]
+		    for i in blockes_dosent_pass: CADtoGeoDataBase.append(["E_BLOCK_7",'block in layer: {}'.format(i[3])])
+
+		check_obj = Layer_Engine(check)
+		check_obj.Extract_shape()
+		blocks_0_0 = Main_0_0_Error(check_obj,'','Blocks at 0,0 that didnt pass "CADToGeodatabase_conversion" tool')
+		CADtoGeoDataBase = CADtoGeoDataBase + blocks_0_0
                 
-		# if blockes_dosent_pass:
-		#     On_layers = list(set([row[3] for row in arcpy.da.SearchCursor('check_lyr',['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]))
-		#     text_me   = ','.join([i for i in set(On_layers)])
-		#     CADtoGeoDataBase.append(["E_BLOCK_7",'total blook that didnt pass: {}, in layers: {}'.format(len(blockes_dosent_pass),text_me)])
-		#     fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
-		#     Missing_blocks  = [row for row in arcpy.da.SearchCursor('check_lyr',fields)]
+		if blockes_dosent_pass:
+		    On_layers = list(set([row[3] for row in arcpy.da.SearchCursor(check,['Handle','LyrFrzn','LyrOn','Layer']) if row[3]]))
+		    text_me   = ','.join([i for i in set(On_layers)])
+		    CADtoGeoDataBase.append(["E_BLOCK_7",'total blook that didnt pass: {}, in layers: {}'.format(len(blockes_dosent_pass),text_me)])
+		    # fields          = ['SHAPE@','Entity','Handle','Layer','LyrFrzn','LyrOn']
+		    # Missing_blocks  = [row for row in arcpy.da.SearchCursor(check,fields)]
 
 	if arcpy.Exists(geom_prob): 
 		frozen_layer = Create_line_prob (geom_prob,line_from_dst,block_as_line,blockes_dosent_pass)
@@ -1150,12 +1168,9 @@ for DWG in DWGS:
         try:
             arcpy.Select_analysis (layers_Block,declaration,"\"Layer\" in ('declaration','DECLARATION','Declaration')")
         except:
-            declaration = DWG +'\\' + 'Point'
-
-        # Get Declaration
-        layer_name2          = 'declaration'
-        Filter5              = "\"Layer\" in ('declaration','DECLARATION','Declaration')"
-        layers_Block         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2,Filter5)
+            layer_name2          = 'declaration'
+            Filter5              = "\"Layer\" in ('declaration','DECLARATION','Declaration')"
+            declaration         = Extract_dwg_to_layer   (fgdb_name,Point,layer_name2,Filter5)
 
 
         # # #   Get polygon M1200 and M1300, if not found, Create from Line   # # #
