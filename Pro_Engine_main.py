@@ -750,7 +750,7 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
         lines.append                            (["E_Line_1","Features with shape NoType at layers: {}".format(message)])
 
     # check if line intersect with M1300
-    # try:
+
     if arcpy.Exists(poly_M1200_M1300) and not os.path.dirname(Lines_all).endswith('.dwg'):
         Erase(Lines_all,poly_M1200_M1300)
     if int(str(arcpy.GetCount_management(Lines_all))) and not os.path.dirname(Lines_all).endswith('.dwg'):
@@ -767,8 +767,6 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
     if arcpy.Exists(Lines_all) and not os.path.dirname(Lines_all).endswith('.dwg'):
         arcpy.Delete_management                 (Lines_all)
-    # except:
-    #     print_arcpy_message(' COUDNT CHECK IF LAYER intersect with M1300',2)
 
 
     return lines
