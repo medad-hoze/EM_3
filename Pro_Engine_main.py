@@ -344,12 +344,14 @@ def Erase(fc,del_layer,Out_put = ''):
         del del_layer_temp
                         
     else:
+        dissolve = False
         count_me = int(str(arcpy.GetCount_management(del_layer)))
         if count_me > 0:
             
             temp = 'in_memory' +'\\'+'_temp'
             try:
                 arcpy.Dissolve_management(del_layer,temp)
+                dissolve = True
             except:
                 temp = del_layer
 
@@ -365,7 +367,8 @@ def Erase(fc,del_layer,Out_put = ''):
                     except:
                         pass
                 del Ucursor
-            arcpy.Delete_management(temp)
+            if dissolve:
+                arcpy.Delete_management(temp)
         else:
             pass
 
