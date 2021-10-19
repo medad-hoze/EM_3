@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # for any problem: medadhoze@hotmail.com
-# date:    25.8.2021
-# version: 3
+# date:    19.10.2021
+# version: 3.1
 
 import arcpy,math
 import pandas as pd
@@ -331,7 +331,6 @@ def Erase(fc,del_layer,Out_put = ''):
     if desc.ShapeType == u'Point':
         del_layer_temp = 'in_memory' + '\\' + 'Temp'
         arcpy.Dissolve_management(del_layer,del_layer_temp)
-
         if desc.ShapeType == u'Point':
             geom_del = [row.shape for row in arcpy.SearchCursor (del_layer_temp)][0]
             Ucursor  = arcpy.UpdateCursor (Out_put)
@@ -347,8 +346,13 @@ def Erase(fc,del_layer,Out_put = ''):
     else:
         count_me = int(str(arcpy.GetCount_management(del_layer)))
         if count_me > 0:
+            
             temp = 'in_memory' +'\\'+'_temp'
-            arcpy.Dissolve_management(del_layer,temp)
+            try:
+                arcpy.Dissolve_management(del_layer,temp)
+            except:
+                temp = del_layer
+
             if int(str(arcpy.GetCount_management(temp))) > 0:
                 geom_del = [row.shape for row in arcpy.SearchCursor (temp)][0]
                 Ucursor  = arcpy.UpdateCursor (Out_put)
@@ -746,7 +750,7 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
         lines.append                            (["E_Line_1","Features with shape NoType at layers: {}".format(message)])
 
     # check if line intersect with M1300
-
+    # try:
     if arcpy.Exists(poly_M1200_M1300) and not os.path.dirname(Lines_all).endswith('.dwg'):
         Erase(Lines_all,poly_M1200_M1300)
     if int(str(arcpy.GetCount_management(Lines_all))) and not os.path.dirname(Lines_all).endswith('.dwg'):
@@ -763,6 +767,8 @@ def Check_Lines(obj_lines,Lines_all,poly_M1200_M1300,fgdb_name):
 
     if arcpy.Exists(Lines_all) and not os.path.dirname(Lines_all).endswith('.dwg'):
         arcpy.Delete_management                 (Lines_all)
+    # except:
+    #     print_arcpy_message(' COUDNT CHECK IF LAYER intersect with M1300',2)
 
 
     return lines
@@ -883,10 +889,6 @@ def Cheak_CADtoGeoDataBase(DWG,fgdb_name,obj_block):
         
 		arcpy.Select_analysis                  (points,check,Filter_)
 		arcpy.MakeFeatureLayer_management      (check,'check_lyr')
-
-		print_arcpy_message(obj_block.layer)
-		print_arcpy_message(check)
-
 		arcpy.SelectLayerByLocation_management ('check_lyr','INTERSECT',obj_block.layer,0.1)
 		arcpy.DeleteFeatures_management        ('check_lyr')
 
@@ -1119,7 +1121,7 @@ print_arcpy_message('#  #  #  #  #     S T A R T     #  #  #  #  #')
 
 # # # In Put # # #
 DWGS        = arcpy.GetParameterAsText(0).split(';')
-# DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\Temp\150asMade.dwg"]
+# DWGS = [r"C:\Users\Administrator\Desktop\medad\python\Work\Engine_Cad_To_Gis\DWG\6157-269.dwg"]
 
 
 # # #     Preper Data    # # #
@@ -1137,8 +1139,8 @@ for DWG in DWGS:
         fgdb_name      = Create_GDB      (GDB_file,DWG_name)
         csv_name       = GDB_file  + '\\' + DWG_name +'.csv'
         pdf_table      = GDB_file  + '\\' + DWG_name +'_DATA.pdf'
-        pdf_MAP        = GDB_file   +'\\' + DWG_name +'_MAP.pdf'
-        PDF            = GDB_file   +'\\' + DWG_name +'.pdf'
+        pdf_MAP        = GDB_file  + '\\' + DWG_name +'_MAP.pdf'
+        PDF            = GDB_file  + '\\' + DWG_name +'.pdf'
 
         if (str(python_version())) == '2.7.16':
             mxd_path   = Tamplates + '\\' + 'M1200_M1300.mxd'
